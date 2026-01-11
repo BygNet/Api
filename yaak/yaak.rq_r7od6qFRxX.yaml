@@ -1,0 +1,18 @@
+type: http_request
+model: http_request
+id: rq_r7od6qFRxX
+createdAt: 2026-01-11T15:29:27.332105
+updatedAt: 2026-01-11T16:32:00.761277
+workspaceId: wk_4d6NvbCu5c
+folderId: null
+authentication: {}
+authenticationType: null
+body: {}
+bodyType: null
+description: ''
+headers: []
+method: GET
+name: /latest-images
+sortPriority: 2000.0
+url: ${[ baseUrl ]}/latest-images
+urlParameters: []

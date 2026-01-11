@@ -1,0 +1,29 @@
+type: http_request
+model: http_request
+id: rq_cZJu5PHtdc
+createdAt: 2026-01-11T16:31:49.569988
+updatedAt: 2026-01-11T16:32:07.236985
+workspaceId: wk_4d6NvbCu5c
+folderId: null
+authentication: {}
+authenticationType: null
+body:
+  form:
+  - enabled: false
+    name: ''
+    value: ''
+  - enabled: true
+    name: ''
+    value: ''
+bodyType: application/x-www-form-urlencoded
+description: ''
+headers:
+- enabled: true
+  name: Content-Type
+  value: application/x-www-form-urlencoded
+  id: cxHjiQtMWi
+method: POST
+name: /like-image
+sortPriority: 5000.001
+url: ${[ baseUrl ]}/like-image/21
+urlParameters: []

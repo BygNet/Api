@@ -1,0 +1,67 @@
+import { Elysia } from 'elysia'
+import {
+  BygImage,
+  BygPost,
+  BygShop,
+  BygVideo,
+} from '@/types'
+import { BrowseController } from '@/browse/controller'
+import { HomePage } from '@/htmlPages'
+import { html } from '@elysiajs/html'
+import { LikeController } from '@/like/controller'
+import { Shops } from '@/shops'
+
+const bygApi = new Elysia()
+
+// Routes
+bygApi
+  .use(html())
+  .get('/', (): string => HomePage)
+  .get(
+    '/latest-posts',
+    async (): Promise<BygPost[]> =>
+      await BrowseController.browsePosts()
+  )
+  .get(
+    '/latest-images',
+    async (): Promise<BygImage[]> =>
+      await BrowseController.browseImages()
+  )
+  .get(
+    '/latest-videos',
+    async (): Promise<BygVideo[]> =>
+      await BrowseController.browseVideos()
+  )
+  .get('/shops', (): BygShop[] => {
+    return Shops
+  })
+  .post(
+    '/like-post/:id',
+    async ({ params, set }): Promise<void> => {
+      set.status = await LikeController.likePost(
+        Number(params.id)
+      )
+    }
+  )
+  .post(
+    '/like-image/:id',
+    async ({ params, set }): Promise<void> => {
+      set.status = await LikeController.likeImage(
+        Number(params.id)
+      )
+    }
+  )
+  .post(
+    '/like-video/:id',
+    async ({ params, set }): Promise<void> => {
+      set.status = await LikeController.likeVideo(
+        Number(params.id)
+      )
+    }
+  )
+  .listen(5001)
+
+// Start
+console.info(
+  `Elysia is running at http://${bygApi.server?.hostname}:${bygApi.server?.port}`
+)

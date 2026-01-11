@@ -1,0 +1,18 @@
+type: environment
+model: environment
+id: ev_XvsXm7wLmq
+workspaceId: wk_4d6NvbCu5c
+createdAt: 2026-01-11T15:11:40.804419
+updatedAt: 2026-01-11T15:12:35.549328
+name: Prod
+public: true
+base: false
+parentModel: environment
+parentId: null
+variables:
+- enabled: true
+  name: baseUrl
+  value: https://api.byg.a35.dev
+  id: RtqBcv0nIh
+color: var(--info)
+sortPriority: 0.0

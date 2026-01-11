@@ -1,15 +1,22 @@
 {
-  "name": "Byg",
+  "name": "byg-api",
   "version": "1.0.50",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "bun run --watch src/index.ts"
+    "dev": "bun run --watch src/main.ts",
+    "format": "prettier --ignore-path .prettierignore --write .",
+    "loadTest": "autocannon -c 300 -p 10 -d 30 http://localhost:5001/latest-posts"
   },
   "dependencies": {
+    "@elysiajs/html": "^1.4.0",
+    "@types/better-sqlite3": "^7.6.13",
+    "better-sqlite3": "^12.6.0",
+    "drizzle-orm": "^0.45.1",
     "elysia": "latest"
   },
   "devDependencies": {
-    "bun-types": "latest"
+    "bun-types": "latest",
+    "drizzle-kit": "^0.31.8",
+    "prettier": "^3.7.4"
   },
-  "module": "src/index.js"
+  "module": "src/main.js"
 }

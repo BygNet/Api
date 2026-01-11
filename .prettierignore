@@ -1,0 +1,8 @@
+node_modules
+.idea
+README.md
+bun.lock
+.gitignore
+.prettierignore
+data.db
+yaak

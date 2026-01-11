@@ -1,0 +1,14 @@
+type: workspace
+model: workspace
+id: wk_4d6NvbCu5c
+createdAt: 2026-01-11T15:11:21.769504
+updatedAt: 2026-01-11T15:11:21.769504
+authentication: {}
+authenticationType: null
+description: ''
+headers: []
+name: Byg
+encryptionKeyChallenge: null
+settingValidateCertificates: true
+settingFollowRedirects: true
+settingRequestTimeout: 0

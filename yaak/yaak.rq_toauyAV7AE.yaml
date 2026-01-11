@@ -1,0 +1,29 @@
+type: http_request
+model: http_request
+id: rq_toauyAV7AE
+createdAt: 2026-01-11T16:32:14.786816
+updatedAt: 2026-01-11T16:32:33.312063
+workspaceId: wk_4d6NvbCu5c
+folderId: null
+authentication: {}
+authenticationType: null
+body:
+  form:
+  - enabled: false
+    name: ''
+    value: ''
+  - enabled: true
+    name: ''
+    value: ''
+bodyType: application/x-www-form-urlencoded
+description: ''
+headers:
+- enabled: true
+  name: Content-Type
+  value: application/x-www-form-urlencoded
+  id: cxHjiQtMWi
+method: POST
+name: /like-video
+sortPriority: 5000.002
+url: ${[ baseUrl ]}/like-video/4
+urlParameters: []

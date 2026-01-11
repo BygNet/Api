@@ -1,0 +1,18 @@
+type: http_request
+model: http_request
+id: rq_T2oYAv7THi
+createdAt: 2026-01-11T15:29:41.503727
+updatedAt: 2026-01-11T16:32:25.093506
+workspaceId: wk_4d6NvbCu5c
+folderId: null
+authentication: {}
+authenticationType: null
+body: {}
+bodyType: null
+description: ''
+headers: []
+method: GET
+name: /latest-videos
+sortPriority: 3000.0
+url: ${[ baseUrl ]}/latest-videos
+urlParameters: []
