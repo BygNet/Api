@@ -88,6 +88,9 @@ if (!isProd) {
   console.info(
     `Elysia is running at http://${bygApi.server?.hostname}:${bygApi.server?.port}`
   )
+} else {
+  bygApi.listen(3000)
+  console.info('Elysia starting for Prod.')
 }
 
 export default bygApi
