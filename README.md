@@ -1,15 +1,22 @@
-# Elysia with Bun runtime
+# Byg API
+This repo contains the API for Byg - the beautiful, unhinged, open social media.
+The main Byg-hosted API is accessible [here](https://api.byg.a35.dev/).
 
-## Getting Started
-To get started with this template, simply paste this command into your terminal:
-```bash
-bun create elysia ./elysia-example
-```
+## Why Byg?
+- We love ash.
+- BYGger = BETter (not a reference to an upcoming online gambling service).
+- I said so.
+- Byg is open source under the Apache License 2.0.
 
-## Development
-To start the development server run:
-```bash
-bun run dev
-```
+## Byg Mobile
+Byg Mobile for iOS is releasing soon as an open source repo.
+Stay tuned!
 
-Open http://localhost:3000/ with your browser to see the result.
+## Thanks
+Byg thanks to the following people and projects:
+- TypeScript Language
+- Bun Runtime (Buntime)
+- Elysia js
+- Render.com
+- Dimabooboobear
+- Allie
