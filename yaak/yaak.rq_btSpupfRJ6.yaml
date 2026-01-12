@@ -1,0 +1,39 @@
+type: http_request
+model: http_request
+id: rq_btSpupfRJ6
+createdAt: 2026-01-12T09:01:04.792338
+updatedAt: 2026-01-12T09:29:23.461576
+workspaceId: wk_4d6NvbCu5c
+folderId: null
+authentication: {}
+authenticationType: null
+body:
+  form:
+  - enabled: true
+    id: dqJJkSXgb5
+    name: title
+    value: hello mfs I have the first Byg post.
+  - enabled: true
+    id: AJYkSy3i7W
+    name: content
+    value: this is the real first Byg post ever.
+  - enabled: true
+    id: YakNPBdFmK
+    name: author
+    value: developers@Byg
+  - enabled: true
+    id: EWZn9psBuV
+    name: ''
+    value: ''
+bodyType: multipart/form-data
+description: ''
+headers:
+- enabled: true
+  name: Content-Type
+  value: multipart/form-data
+  id: rRskcjsqi5
+method: POST
+name: /create-post
+sortPriority: 8000.0
+url: ${[ baseUrl ]}/create-post
+urlParameters: []

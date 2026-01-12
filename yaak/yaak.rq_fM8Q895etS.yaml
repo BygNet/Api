@@ -1,0 +1,39 @@
+type: http_request
+model: http_request
+id: rq_fM8Q895etS
+createdAt: 2026-01-12T09:29:43.819253
+updatedAt: 2026-01-12T09:37:42.038132
+workspaceId: wk_4d6NvbCu5c
+folderId: null
+authentication: {}
+authenticationType: null
+body:
+  form:
+  - enabled: true
+    id: z6cmUmxpN8
+    name: title
+    value: Vite Logo
+  - enabled: true
+    id: Vc827CexyZ
+    name: imageUrl
+    value: https://vite.dev/logo.svg
+  - enabled: true
+    id: juaF4mGWZr
+    name: author
+    value: developers@vite
+  - enabled: true
+    id: paY6XFWjX5
+    name: ''
+    value: ''
+bodyType: multipart/form-data
+description: ''
+headers:
+- enabled: true
+  name: Content-Type
+  value: multipart/form-data
+  id: 7rVjmSJjeV
+method: POST
+name: /upload-image
+sortPriority: 8000.0
+url: ${[ baseUrl ]}/upload-image
+urlParameters: []

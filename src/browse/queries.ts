@@ -1,7 +1,7 @@
 import { BygImage, BygPost, BygVideo } from '@/types'
 import { data } from '@/data/client'
 import { images, posts, videos } from '@/data/tables'
-import { sql } from 'drizzle-orm'
+import { eq, sql } from 'drizzle-orm'
 
 export abstract class BrowseQueries {
   static getPosts(): Promise<BygPost[]> {
@@ -10,6 +10,14 @@ export abstract class BrowseQueries {
       .from(posts)
       .limit(100)
       .orderBy(sql`${posts.id} desc`)
+  }
+
+  static getPostById(id: number): Promise<BygPost[]> {
+    return data
+      .select()
+      .from(posts)
+      .where(eq(posts.id, id))
+      .limit(1)
   }
 
   static getImages(): Promise<BygImage[]> {

@@ -7,6 +7,12 @@ export abstract class BrowseController {
     return await BrowseQueries.getPosts()
   }
 
+  static async getPostInfo(id: number): Promise<BygPost> {
+    console.info('Getting Post Info')
+    const data = await BrowseQueries.getPostById(id)
+    return data[0]
+  }
+
   static async browseImages(): Promise<BygImage[]> {
     console.info('Images Loaded')
     return await BrowseQueries.getImages()

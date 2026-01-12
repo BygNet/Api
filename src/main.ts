@@ -10,6 +10,11 @@ import { HomePage } from '@/htmlPages'
 import { html } from '@elysiajs/html'
 import { LikeController } from '@/like/controller'
 import { Shops } from '@/shops'
+import { CreateController } from '@/create/controller'
+import {
+  CreatePostSchema,
+  UploadImageSchema,
+} from '@/schemas'
 
 const bygApi = new Elysia()
 
@@ -59,9 +64,29 @@ bygApi
       )
     }
   )
+  .post(
+    '/create-post',
+    async ({ body, set }): Promise<void> => {
+      set.status = await CreateController.createPost(body)
+    },
+    {
+      body: CreatePostSchema,
+    }
+  )
+  .post(
+    '/upload-image',
+    async ({ body, set }): Promise<void> => {
+      set.status = await CreateController.uploadImage(body)
+    },
+    { body: UploadImageSchema }
+  )
   .listen(5001)
 
 // Start
+export default {
+  fetch: bygApi.fetch,
+}
+
 console.info(
   `Elysia is running at http://${bygApi.server?.hostname}:${bygApi.server?.port}`
 )

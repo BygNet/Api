@@ -8,10 +8,9 @@
   },
   "dependencies": {
     "@elysiajs/html": "^1.4.0",
-    "@types/better-sqlite3": "^7.6.13",
-    "better-sqlite3": "^12.6.0",
     "drizzle-orm": "^0.45.1",
-    "elysia": "latest"
+    "elysia": "latest",
+    "postgres": "^3.4.8"
   },
   "devDependencies": {
     "bun-types": "latest",

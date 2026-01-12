@@ -5,7 +5,7 @@ import {
 } from 'drizzle-orm/sqlite-core'
 
 export const posts = sqliteTable('posts', {
-  id: integer('id').primaryKey().notNull(),
+  id: integer('id').primaryKey({ autoIncrement: true }),
   title: text('title').notNull(),
   content: text('content').notNull(),
   author: text('author').notNull(),
@@ -15,7 +15,7 @@ export const posts = sqliteTable('posts', {
 })
 
 export const images = sqliteTable('images', {
-  id: integer('id').primaryKey().notNull(),
+  id: integer('id').primaryKey({ autoIncrement: true }),
   title: text('title').notNull(),
   imageUrl: text('imageUrl').notNull(),
   author: text('author').notNull(),
@@ -25,7 +25,7 @@ export const images = sqliteTable('images', {
 })
 
 export const videos = sqliteTable('videos', {
-  id: integer('id').primaryKey().notNull(),
+  id: integer('id').primaryKey({ autoIncrement: true }),
   title: text('title').notNull(),
   author: text('author').notNull(),
   videoUrl: text('videoUrl').notNull(),
