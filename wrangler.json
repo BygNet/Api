@@ -1,0 +1,5 @@
+{
+  "name": "byg-api",
+  "main": "src/main.ts",
+  "compatibility_date": "2026-01-12"
+}
