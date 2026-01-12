@@ -15,6 +15,7 @@ import {
   CreatePostSchema,
   UploadImageSchema,
 } from '@/schemas'
+import { isProd } from '@/data/client'
 
 const bygApi = new Elysia()
 
@@ -80,13 +81,13 @@ bygApi
     },
     { body: UploadImageSchema }
   )
-  .listen(5001)
 
 // Start
-export default {
-  fetch: bygApi.fetch,
+if (!isProd) {
+  bygApi.listen(5001)
+  console.info(
+    `Elysia is running at http://${bygApi.server?.hostname}:${bygApi.server?.port}`
+  )
 }
 
-console.info(
-  `Elysia is running at http://${bygApi.server?.hostname}:${bygApi.server?.port}`
-)
+export default bygApi

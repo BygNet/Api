@@ -1,5 +1,5 @@
 let data: any
-const isProd: boolean =
+export const isProd: boolean =
   process.env.NODE_ENV === 'production'
 
 if (!isProd) {
