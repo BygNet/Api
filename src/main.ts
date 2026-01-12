@@ -16,12 +16,19 @@ import {
   UploadImageSchema,
 } from '@/schemas'
 import { isProd } from '@/data/client'
+import { cors } from '@elysiajs/cors'
 
 const bygApi = new Elysia()
 
 // Routes
 bygApi
   .use(html())
+  .use(cors({
+    origin: [
+      'http://localhost:5173',
+      'https://byg.a35.dev'
+    ]
+  }))
   .get('/', (): string => HomePage)
   .get(
     '/latest-posts',
