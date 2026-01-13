@@ -1,0 +1,18 @@
+type: http_request
+model: http_request
+id: rq_resheyFSrA
+createdAt: 2026-01-13T11:40:12.771554
+updatedAt: 2026-01-13T11:41:01.566721
+workspaceId: wk_4d6NvbCu5c
+folderId: null
+authentication: {}
+authenticationType: null
+body: {}
+bodyType: null
+description: ''
+headers: []
+method: GET
+name: /post-details
+sortPriority: 3000.0
+url: ${[ baseUrl ]}/post-details/2000000012
+urlParameters: []
