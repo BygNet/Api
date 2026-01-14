@@ -2,7 +2,7 @@ type: http_request
 model: http_request
 id: rq_btSpupfRJ6
 createdAt: 2026-01-12T09:01:04.792338
-updatedAt: 2026-01-12T09:29:23.461576
+updatedAt: 2026-01-13T12:20:32.587555
 workspaceId: wk_4d6NvbCu5c
 folderId: null
 authentication: {}
@@ -12,17 +12,17 @@ body:
   - enabled: true
     id: dqJJkSXgb5
     name: title
-    value: hello mfs I have the first Byg post.
+    value: his name is Даша
   - enabled: true
     id: AJYkSy3i7W
     name: content
-    value: this is the real first Byg post ever.
+    value: he doesn't this name.
   - enabled: true
     id: YakNPBdFmK
     name: author
     value: developers@Byg
   - enabled: true
-    id: EWZn9psBuV
+    id: X3uPQNDfpH
     name: ''
     value: ''
 bodyType: multipart/form-data
