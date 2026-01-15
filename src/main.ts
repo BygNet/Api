@@ -1,4 +1,4 @@
-import { Elysia } from 'elysia'
+import { Elysia, t } from 'elysia'
 import {
   BygImage,
   BygPost,
@@ -18,11 +18,17 @@ import {
 import { isProd } from '@/data/client'
 import { cors } from '@elysiajs/cors'
 import { ShareController } from '@/share/controller'
+import { AuthController } from '@/auth/controller'
+import jwt from 'jsonwebtoken'
+import { data } from '@/data/client'
+import { sessions } from '@/data/tables'
+import { eq } from 'drizzle-orm'
 
-const bygApi = new Elysia()
-
-const IS_LOCKED: boolean = import.meta.env.LOCKED === 'TRUE'
-
+const BygApi = new Elysia().decorate(
+  'userId',
+  null as number | null
+)
+const IsLocked: boolean = import.meta.env.LOCKED === 'TRUE'
 const writePathPrefixes: string[] = [
   '/create-post',
   '/upload-image',
@@ -32,23 +38,56 @@ const writePathPrefixes: string[] = [
   '/share-post',
 ]
 
-bygApi.onBeforeHandle(({ request, set }) => {
-  if (!IS_LOCKED) return
+const JWT_SECRET = process.env.JWT_SECRET ?? 'dev-secret'
 
+BygApi.onBeforeHandle(({ request, set }) => {
+  if (!IsLocked) return
   if (request.method !== 'POST') return
 
   const url = new URL(request.url)
   const path: string = url.pathname
 
-  if (writePathPrefixes.some(prefix => path.startsWith(prefix))) {
+  if (
+    writePathPrefixes.some(prefix =>
+      path.startsWith(prefix)
+    )
+  ) {
     set.status = 503
     return 'Writes are temporarily disabled'
   }
 })
 
+BygApi.derive(
+  async ({
+    request,
+  }): Promise<{ userId: number | null }> => {
+    const auth = request.headers.get('authorization')
+    if (!auth) return { userId: null }
+
+    try {
+      const token = auth.replace('Bearer ', '')
+      const payload = jwt.verify(token, JWT_SECRET) as any
+
+      const session = await data.query.sessions.findFirst({
+        where: eq(sessions.id, payload.sid),
+      })
+
+      if (
+        !session ||
+        session.expiresAt.getTime() < Date.now()
+      ) {
+        return { userId: null }
+      }
+
+      return { userId: payload.sub as number }
+    } catch {
+      return { userId: null }
+    }
+  }
+)
+
 // Routes
-bygApi
-  .use(html())
+BygApi.use(html())
   .use(
     cors({
       origin: [
@@ -57,6 +96,38 @@ bygApi
       ],
     })
   )
+  // Auth routes
+  .post(
+    '/auth/signup',
+    ({ body, set }) => {
+      return AuthController.signup(body as any, set)
+    },
+    {
+      body: t.Object({
+        email: t.String(),
+        username: t.String(),
+        password: t.String(),
+      }),
+    }
+  )
+  .post(
+    '/auth/login',
+    ({ body, set }) => {
+      return AuthController.login(body as any, set)
+    },
+    {
+      body: t.Object({
+        email: t.String(),
+        password: t.String(),
+      }),
+    }
+  )
+  .post('/auth/logout', async ({ request, set }) => {
+    return AuthController.logout(request, set)
+  })
+  .get('/auth/me', async ({ request, set }) => {
+    return AuthController.me(request, set)
+  })
   .get('/', (): string => HomePage)
   .get(
     '/latest-posts',
@@ -116,8 +187,16 @@ bygApi
   )
   .post(
     '/create-post',
-    async ({ body, set }): Promise<void> => {
-      set.status = await CreateController.createPost(body)
+    async ({ body, set, userId }): Promise<void> => {
+      if (!userId) {
+        set.status = 401
+        return
+      }
+
+      set.status = await CreateController.createPost(
+        body,
+        userId
+      )
     },
     {
       body: CreatePostSchema,
@@ -125,21 +204,29 @@ bygApi
   )
   .post(
     '/upload-image',
-    async ({ body, set }): Promise<void> => {
-      set.status = await CreateController.uploadImage(body)
+    async ({ body, set, userId }): Promise<void> => {
+      if (!userId) {
+        set.status = 401
+        return
+      }
+
+      set.status = await CreateController.uploadImage(
+        body,
+        userId
+      )
     },
     { body: UploadImageSchema }
   )
 
 // Start
 if (!isProd) {
-  bygApi.listen(5001)
+  BygApi.listen(5001)
   console.info(
-    `Elysia is running at http://${bygApi.server?.hostname}:${bygApi.server?.port}`
+    `Elysia is running at http://${BygApi.server?.hostname}:${BygApi.server?.port}`
   )
 } else {
-  bygApi.listen(3000)
+  BygApi.listen(3000)
   console.info('Elysia starting for Prod.')
 }
 
-export default bygApi
+export default BygApi

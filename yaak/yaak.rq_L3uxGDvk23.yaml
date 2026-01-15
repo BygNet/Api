@@ -2,9 +2,9 @@ type: http_request
 model: http_request
 id: rq_L3uxGDvk23
 createdAt: 2026-01-15T17:05:11.548153
-updatedAt: 2026-01-15T17:07:26.229192
+updatedAt: 2026-01-15T18:25:04.729023
 workspaceId: wk_4d6NvbCu5c
-folderId: null
+folderId: fl_3TqnwEZLGd
 authentication: {}
 authenticationType: null
 body: {}
@@ -13,6 +13,6 @@ description: ''
 headers: []
 method: POST
 name: /share-post
-sortPriority: 7111.111111111111
+sortPriority: 3000.0
 url: ${[ baseUrl ]}/share-post/19
 urlParameters: []

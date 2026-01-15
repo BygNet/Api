@@ -2,9 +2,9 @@ type: http_request
 model: http_request
 id: rq_svGZG6ZnfU
 createdAt: 2026-01-11T15:17:49.470437
-updatedAt: 2026-01-12T09:01:49.297916
+updatedAt: 2026-01-15T18:24:33.192350
 workspaceId: wk_4d6NvbCu5c
-folderId: null
+folderId: fl_dLLGm635K9
 authentication: {}
 authenticationType: null
 body: {}
@@ -13,6 +13,6 @@ description: ''
 headers: []
 method: GET
 name: /latest-posts
-sortPriority: 1000.0
+sortPriority: 0.0
 url: ${[ baseUrl ]}/latest-posts
 urlParameters: []

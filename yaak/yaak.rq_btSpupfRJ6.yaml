@@ -2,11 +2,12 @@ type: http_request
 model: http_request
 id: rq_btSpupfRJ6
 createdAt: 2026-01-12T09:01:04.792338
-updatedAt: 2026-01-14T12:19:38.415929
+updatedAt: 2026-01-15T19:03:21.300705
 workspaceId: wk_4d6NvbCu5c
-folderId: null
-authentication: {}
-authenticationType: null
+folderId: fl_fdddo6sQFL
+authentication:
+  token: ${[ testToken ]}
+authenticationType: bearer
 body:
   form:
   - enabled: true
@@ -34,6 +35,6 @@ headers:
   id: rRskcjsqi5
 method: POST
 name: /create-post
-sortPriority: 7333.333333333333
+sortPriority: 0.0
 url: ${[ baseUrl ]}/create-post
 urlParameters: []

@@ -2,9 +2,9 @@ type: http_request
 model: http_request
 id: rq_resheyFSrA
 createdAt: 2026-01-13T11:40:12.771554
-updatedAt: 2026-01-13T11:41:01.566721
+updatedAt: 2026-01-15T18:24:33.194815
 workspaceId: wk_4d6NvbCu5c
-folderId: null
+folderId: fl_dLLGm635K9
 authentication: {}
 authenticationType: null
 body: {}

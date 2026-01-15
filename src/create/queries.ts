@@ -1,17 +1,18 @@
 import { data } from '@/data/client'
 import { images, posts } from '@/data/tables'
-import { CreatePostBody, UploadImageBody } from '@/schemas'
 
 export abstract class CreateQueries {
-  static async savePost(
-    post: CreatePostBody
-  ): Promise<void> {
+  static async savePost(post: {
+    title: string
+    content: string
+    authorId: number
+  }): Promise<void> {
     try {
       await data.insert(posts).values({
         title: post.title,
         content: post.content,
-        author: post.author,
-        createdDate: new Date().toISOString(),
+        authorId: post.authorId,
+        createdAt: new Date(),
       })
     } catch (e) {
       console.error(e)
@@ -19,15 +20,17 @@ export abstract class CreateQueries {
     }
   }
 
-  static async saveImage(
-    image: UploadImageBody
-  ): Promise<void> {
+  static async saveImage(image: {
+    title: string
+    imageUrl: string
+    authorId: number
+  }): Promise<void> {
     try {
       await data.insert(images).values({
         title: image.title,
         imageUrl: image.imageUrl,
-        author: image.author,
-        createdDate: new Date().toISOString(),
+        authorId: image.authorId,
+        createdAt: new Date(),
       })
     } catch (e) {
       throw e

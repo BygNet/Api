@@ -2,11 +2,12 @@ type: http_request
 model: http_request
 id: rq_fM8Q895etS
 createdAt: 2026-01-12T09:29:43.819253
-updatedAt: 2026-01-12T09:37:42.038132
+updatedAt: 2026-01-15T19:03:29.640017
 workspaceId: wk_4d6NvbCu5c
-folderId: null
-authentication: {}
-authenticationType: null
+folderId: fl_fdddo6sQFL
+authentication:
+  token: ${[ testToken ]}
+authenticationType: bearer
 body:
   form:
   - enabled: true
@@ -34,6 +35,6 @@ headers:
   id: 7rVjmSJjeV
 method: POST
 name: /upload-image
-sortPriority: 8000.0
+sortPriority: 1000.0
 url: ${[ baseUrl ]}/upload-image
 urlParameters: []

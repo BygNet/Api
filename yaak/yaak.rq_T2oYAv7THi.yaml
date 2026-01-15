@@ -2,9 +2,9 @@ type: http_request
 model: http_request
 id: rq_T2oYAv7THi
 createdAt: 2026-01-11T15:29:41.503727
-updatedAt: 2026-01-12T09:01:49.299216
+updatedAt: 2026-01-15T18:24:33.194200
 workspaceId: wk_4d6NvbCu5c
-folderId: null
+folderId: fl_dLLGm635K9
 authentication: {}
 authenticationType: null
 body: {}
@@ -13,6 +13,6 @@ description: ''
 headers: []
 method: GET
 name: /latest-videos
-sortPriority: 3000.0
+sortPriority: 2000.0
 url: ${[ baseUrl ]}/latest-videos
 urlParameters: []

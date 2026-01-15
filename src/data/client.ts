@@ -1,3 +1,4 @@
+import * as schema from '@/data/tables'
 let data: any
 export const isProd: boolean =
   process.env.NODE_ENV === 'production'
@@ -9,7 +10,7 @@ if (!isProd) {
     await import('drizzle-orm/bun-sqlite')
 
   const sqlite = new Database('data.db')
-  data = sqliteDrizzle(sqlite)
+  data = sqliteDrizzle(sqlite, { schema })
 } else {
   // Postgres (prod)
   const postgres = (await import('postgres')).default
@@ -19,7 +20,7 @@ if (!isProd) {
   const sql = postgres(process.env.DATABASE_URL!, {
     ssl: 'require',
   })
-  data = pgDrizzle(sql)
+  data = pgDrizzle(sql, { schema })
 }
 
 export { data }

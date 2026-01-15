@@ -1,0 +1,39 @@
+type: http_request
+model: http_request
+id: rq_b6WR5iZBeB
+createdAt: 2026-01-15T18:25:19.292832
+updatedAt: 2026-01-15T18:41:01.258939
+workspaceId: wk_4d6NvbCu5c
+folderId: fl_FeNuxvXCB6
+authentication: {}
+authenticationType: null
+body:
+  form:
+  - enabled: true
+    id: sp8EcDm02N
+    name: email
+    value: test7@a35.dev
+  - enabled: true
+    id: XMEZeBVI7n
+    name: username
+    value: testers7@byg
+  - enabled: true
+    id: FpShmazzCT
+    name: password
+    value: mypass
+  - enabled: true
+    id: VMhzzMZYat
+    name: ''
+    value: ''
+bodyType: multipart/form-data
+description: ''
+headers:
+- enabled: true
+  name: Content-Type
+  value: multipart/form-data
+  id: f2BGVsdDCc
+method: POST
+name: /signup
+sortPriority: 0.0
+url: ${[ baseUrl ]}/auth/signup
+urlParameters: []

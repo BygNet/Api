@@ -3,7 +3,7 @@ model: environment
 id: ev_XvsXm7wLmq
 workspaceId: wk_4d6NvbCu5c
 createdAt: 2026-01-11T15:11:40.804419
-updatedAt: 2026-01-11T15:12:35.549328
+updatedAt: 2026-01-15T19:03:00.355461
 name: Prod
 public: true
 base: false
@@ -14,5 +14,9 @@ variables:
   name: baseUrl
   value: https://api.byg.a35.dev
   id: RtqBcv0nIh
+- enabled: true
+  name: testToken
+  value: 'NULL'
+  id: r4HCsGvkJA
 color: var(--info)
-sortPriority: 0.0
+sortPriority: 1000.0

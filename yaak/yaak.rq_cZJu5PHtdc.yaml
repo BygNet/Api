@@ -2,9 +2,9 @@ type: http_request
 model: http_request
 id: rq_cZJu5PHtdc
 createdAt: 2026-01-11T16:31:49.569988
-updatedAt: 2026-01-12T09:01:49.300583
+updatedAt: 2026-01-15T18:25:04.727568
 workspaceId: wk_4d6NvbCu5c
-folderId: null
+folderId: fl_3TqnwEZLGd
 authentication: {}
 authenticationType: null
 body:
@@ -20,6 +20,6 @@ description: ''
 headers: []
 method: POST
 name: /like-image
-sortPriority: 6000.0
+sortPriority: 1000.0
 url: ${[ baseUrl ]}/like-image/21
 urlParameters: []
