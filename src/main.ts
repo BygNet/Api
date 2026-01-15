@@ -21,6 +21,31 @@ import { ShareController } from '@/share/controller'
 
 const bygApi = new Elysia()
 
+const IS_LOCKED: boolean = import.meta.env.LOCKED === 'TRUE'
+
+const writePathPrefixes: string[] = [
+  '/create-post',
+  '/upload-image',
+  '/like-post',
+  '/like-image',
+  '/like-video',
+  '/share-post',
+]
+
+bygApi.onBeforeHandle(({ request, set }) => {
+  if (!IS_LOCKED) return
+
+  if (request.method !== 'POST') return
+
+  const url = new URL(request.url)
+  const path: string = url.pathname
+
+  if (writePathPrefixes.some(prefix => path.startsWith(prefix))) {
+    set.status = 503
+    return 'Writes are temporarily disabled'
+  }
+})
+
 // Routes
 bygApi
   .use(html())
