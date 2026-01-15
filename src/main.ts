@@ -17,6 +17,7 @@ import {
 } from '@/schemas'
 import { isProd } from '@/data/client'
 import { cors } from '@elysiajs/cors'
+import { ShareController } from '@/share/controller'
 
 const bygApi = new Elysia()
 
@@ -80,6 +81,12 @@ bygApi
       set.status = await LikeController.likeVideo(
         Number(params.id)
       )
+    }
+  )
+  .post(
+    '/share-post/:id',
+    async ({ params }): Promise<string> => {
+      return ShareController.sharePost(Number(params.id))
     }
   )
   .post(

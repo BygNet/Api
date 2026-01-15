@@ -2,7 +2,7 @@ type: http_request
 model: http_request
 id: rq_btSpupfRJ6
 createdAt: 2026-01-12T09:01:04.792338
-updatedAt: 2026-01-13T12:20:32.587555
+updatedAt: 2026-01-14T12:19:38.415929
 workspaceId: wk_4d6NvbCu5c
 folderId: null
 authentication: {}
@@ -12,17 +12,17 @@ body:
   - enabled: true
     id: dqJJkSXgb5
     name: title
-    value: his name is Даша
+    value: Happy Wednesday (again)!
   - enabled: true
     id: AJYkSy3i7W
     name: content
-    value: he doesn't this name.
+    value: "## Byg now supports Markdown!\n\n**Have you ever wanted to express yourself with formatting?** \nNow you can.\n\n### Headers galore...\nYou can:\n- Make headers\n- List your items (like this!)\n\nand...\n1. Be organized\n2. Have fun\n3. Enjoy Byg!\n\n# Thanks for using Byg!\n\nOn behalf of the Byg team, we love you 🫶"
   - enabled: true
     id: YakNPBdFmK
     name: author
     value: developers@Byg
   - enabled: true
-    id: X3uPQNDfpH
+    id: 9pv5qM52It
     name: ''
     value: ''
 bodyType: multipart/form-data
@@ -34,6 +34,6 @@ headers:
   id: rRskcjsqi5
 method: POST
 name: /create-post
-sortPriority: 8000.0
+sortPriority: 7333.333333333333
 url: ${[ baseUrl ]}/create-post
 urlParameters: []
