@@ -3,7 +3,6 @@ import {
   BygImage,
   BygPost,
   BygShop,
-  BygVideo,
 } from '@/types'
 import { BrowseController } from '@/browse/controller'
 import { HomePage } from '@/htmlPages'
@@ -138,11 +137,6 @@ BygApi.use(html())
     '/latest-images',
     async (): Promise<BygImage[]> =>
       await BrowseController.browseImages()
-  )
-  .get(
-    '/latest-videos',
-    async (): Promise<BygVideo[]> =>
-      await BrowseController.browseVideos()
   )
   .get(
     '/post-details/:id',
