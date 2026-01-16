@@ -2,7 +2,7 @@ type: http_request
 model: http_request
 id: rq_btSpupfRJ6
 createdAt: 2026-01-12T09:01:04.792338
-updatedAt: 2026-01-15T19:03:21.300705
+updatedAt: 2026-01-16T17:59:20.341982
 workspaceId: wk_4d6NvbCu5c
 folderId: fl_fdddo6sQFL
 authentication:
@@ -19,11 +19,7 @@ body:
     name: content
     value: "## Byg now supports Markdown!\n\n**Have you ever wanted to express yourself with formatting?** \nNow you can.\n\n### Headers galore...\nYou can:\n- Make headers\n- List your items (like this!)\n\nand...\n1. Be organized\n2. Have fun\n3. Enjoy Byg!\n\n# Thanks for using Byg!\n\nOn behalf of the Byg team, we love you 🫶"
   - enabled: true
-    id: YakNPBdFmK
-    name: author
-    value: developers@Byg
-  - enabled: true
-    id: 9pv5qM52It
+    id: Y9KFZmBrRX
     name: ''
     value: ''
 bodyType: multipart/form-data

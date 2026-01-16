@@ -1,38 +1,95 @@
-import { BygImage, BygPost, BygVideo } from '@/types'
+import { BygImage, BygPost } from '@/types'
 import { data } from '@/data/client'
-import { images, posts, videos } from '@/data/tables'
+import { images, posts, users } from '@/data/tables'
 import { eq, sql } from 'drizzle-orm'
 
+type PostRow = {
+  id: number
+  title: string
+  content: string
+  createdDate: Date
+  author: string | null
+  likes: number
+  shares: number
+}
+
+type ImageRow = {
+  id: number
+  title: string
+  imageUrl: string
+  createdDate: Date
+  author: string | null
+  likes: number
+  shares: number
+}
+
 export abstract class BrowseQueries {
-  static getPosts(): Promise<BygPost[]> {
-    return data
-      .select()
+  static async getPosts(): Promise<BygPost[]> {
+    const rows: PostRow[] = await data
+      .select({
+        id: posts.id,
+        title: posts.title,
+        content: posts.content,
+        createdDate: posts.createdAt,
+        author: users.username,
+        likes: posts.likes,
+        shares: posts.shares,
+      })
       .from(posts)
-      .limit(100)
+      .leftJoin(users, eq(posts.authorId, users.id))
       .orderBy(sql`${posts.id} desc`)
+      .limit(100)
+
+    return rows.map(row => ({
+      ...row,
+      createdDate: row.createdDate.toISOString(),
+      author: row.author ?? 'unknown',
+    }))
   }
 
-  static getPostById(id: number): Promise<BygPost[]> {
-    return data
-      .select()
+  static async getPostById(id: number): Promise<BygPost[]> {
+    const rows: PostRow[] = await data
+      .select({
+        id: posts.id,
+        title: posts.title,
+        content: posts.content,
+        createdDate: posts.createdAt,
+        author: users.username,
+        likes: posts.likes,
+        shares: posts.shares,
+      })
       .from(posts)
+      .leftJoin(users, eq(posts.authorId, users.id))
       .where(eq(posts.id, id))
       .limit(1)
+
+    return rows.map(row => ({
+      ...row,
+      createdDate: row.createdDate.toISOString(),
+      author: row.author ?? 'unknown',
+    }))
   }
 
-  static getImages(): Promise<BygImage[]> {
-    return data
-      .select()
+  static async getImages(): Promise<BygImage[]> {
+    const rows: ImageRow[] = await data
+      .select({
+        id: images.id,
+        title: images.title,
+        imageUrl: images.imageUrl,
+        createdDate: images.createdAt,
+        author: users.username,
+        likes: images.likes,
+        shares: images.shares,
+      })
       .from(images)
-      .limit(100)
+      .leftJoin(users, eq(images.authorId, users.id))
       .orderBy(sql`${images.id} desc`)
-  }
-
-  static getVideos(): Promise<BygVideo[]> {
-    return data
-      .select()
-      .from(videos)
       .limit(100)
-      .orderBy(sql`${videos.id} desc`)
+
+    return rows.map(row => ({
+      ...row,
+      createdDate: row.createdDate.toISOString(),
+      author: row.author ?? 'unknown',
+    }))
   }
 }

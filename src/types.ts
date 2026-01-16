@@ -1,9 +1,26 @@
 import { InferSelectModel } from 'drizzle-orm'
-import { images, posts, videos } from '@/data/tables'
+import { images, posts } from '@/data/tables'
 
-export type BygPost = InferSelectModel<typeof posts>
-export type BygImage = InferSelectModel<typeof images>
-export type BygVideo = InferSelectModel<typeof videos>
+// ---- Raw DB models (internal) ----
+export type BygPostRaw = InferSelectModel<typeof posts>
+export type BygImageRaw = InferSelectModel<typeof images>
+
+// ---- API / frontend-facing models ----
+export type BygPost = Omit<
+  BygPostRaw,
+  'authorId' | 'createdAt'
+> & {
+  author: string
+  createdDate: string
+}
+
+export type BygImage = Omit<
+  BygImageRaw,
+  'authorId' | 'createdAt'
+> & {
+  author: string
+  createdDate: string
+}
 
 export interface BygShop {
   title: string
