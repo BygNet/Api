@@ -1,9 +1,5 @@
 import { Elysia, t } from 'elysia'
-import {
-  BygImage,
-  BygPost,
-  BygShop,
-} from '@/types'
+import { BygImage, BygPost, BygShop } from '@/types'
 import { BrowseController } from '@/browse/controller'
 import { HomePage } from '@/htmlPages'
 import { html } from '@elysiajs/html'
@@ -173,10 +169,16 @@ BygApi.use(html())
       )
     }
   )
-  .post(
+  .get(
     '/share-post/:id',
     async ({ params }): Promise<string> => {
       return ShareController.sharePost(Number(params.id))
+    }
+  )
+  .get(
+    '/share-image/:id',
+    async ({ params }): Promise<string> => {
+      return ShareController.shareImage(Number(params.id))
     }
   )
   .post(

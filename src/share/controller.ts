@@ -12,4 +12,9 @@ export abstract class ShareController {
     ShareQueries.augmentPostShares(id).then((): void => {})
     return constructShareUrl(id, 'details')
   }
+
+  static shareImage(id: number): string {
+    ShareQueries.augmentImageShares(id).then((): void => {})
+    return constructShareUrl(id, 'image')
+  }
 }
