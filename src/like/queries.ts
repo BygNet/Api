@@ -1,7 +1,7 @@
-import { BygPost, BygImage, BygVideo } from '@/types'
+import { BygPost, BygImage } from '@/types'
 import { data } from '@/data/client'
 import { eq, sql } from 'drizzle-orm'
-import { posts, images, videos } from '@/data/tables'
+import { posts, images } from '@/data/tables'
 
 export abstract class LikeQueries {
   static async getPost(
@@ -28,18 +28,6 @@ export abstract class LikeQueries {
     return image[0] ?? null
   }
 
-  static async getVideo(
-    id: number
-  ): Promise<BygVideo | null> {
-    const video: BygVideo[] = await data
-      .select()
-      .from(videos)
-      .where(eq(videos.id, id))
-      .limit(1)
-
-    return video[0] ?? null
-  }
-
   static async likePost(id: number): Promise<void> {
     await data
       .update(posts)
@@ -52,12 +40,5 @@ export abstract class LikeQueries {
       .update(images)
       .set({ likes: sql`${images.likes} + 1` })
       .where(eq(images.id, id))
-  }
-
-  static async likeVideo(id: number): Promise<void> {
-    await data
-      .update(videos)
-      .set({ likes: sql`${videos.likes} + 1` })
-      .where(eq(videos.id, id))
   }
 }

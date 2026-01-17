@@ -30,18 +30,4 @@ export abstract class LikeController {
       return 404
     }
   }
-
-  static async likeVideo(id: number): Promise<number> {
-    console.info(`Liking video ${id}`)
-
-    const video = await LikeQueries.getVideo(id)
-
-    if (video) {
-      await LikeQueries.likeVideo(id)
-      return 204
-    } else {
-      console.error(`Video ${id} not found`)
-      return 404
-    }
-  }
 }

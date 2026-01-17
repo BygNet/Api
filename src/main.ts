@@ -169,14 +169,6 @@ BygApi.use(html())
       )
     }
   )
-  .post(
-    '/like-video/:id',
-    async ({ params, set }): Promise<void> => {
-      set.status = await LikeController.likeVideo(
-        Number(params.id)
-      )
-    }
-  )
   .get(
     '/share-post/:id',
     async ({ params }): Promise<string> => {
