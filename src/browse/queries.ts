@@ -92,4 +92,29 @@ export abstract class BrowseQueries {
       author: row.author ?? 'unknown',
     }))
   }
+
+  static async getImageById(
+    id: number
+  ): Promise<BygImage[]> {
+    const rows: ImageRow[] = await data
+      .select({
+        id: images.id,
+        title: images.title,
+        imageUrl: images.imageUrl,
+        createdDate: images.createdAt,
+        author: users.username,
+        likes: images.likes,
+        shares: images.shares,
+      })
+      .from(images)
+      .leftJoin(users, eq(images.authorId, users.id))
+      .where(eq(images.id, id))
+      .limit(1)
+
+    return rows.map(row => ({
+      ...row,
+      createdDate: row.createdDate.toISOString(),
+      author: row.author ?? 'unknown',
+    }))
+  }
 }

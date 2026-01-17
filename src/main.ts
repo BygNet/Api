@@ -142,6 +142,14 @@ BygApi.use(html())
       )
     }
   )
+  .get(
+    '/image-details/:id',
+    async ({ params }): Promise<BygImage> => {
+      return await BrowseController.getImageInfo(
+        Number(params.id)
+      )
+    }
+  )
   .get('/shops', (): BygShop[] => {
     return Shops
   })
