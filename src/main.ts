@@ -60,7 +60,7 @@ BygApi.derive(
     if (!auth) return { userId: null }
 
     try {
-      const token = auth.replace('Bearer ', '')
+      const token: string = auth.replace('Bearer ', '')
       const payload = jwt.verify(token, JWT_SECRET) as any
 
       const session = await data.query.sessions.findFirst({
@@ -74,7 +74,7 @@ BygApi.derive(
         return { userId: null }
       }
 
-      return { userId: payload.sub as number }
+      return { userId: Number(payload.sub) }
     } catch {
       return { userId: null }
     }
