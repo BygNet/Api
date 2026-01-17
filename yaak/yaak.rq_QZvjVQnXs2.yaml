@@ -1,8 +1,8 @@
 type: http_request
 model: http_request
-id: rq_T2oYAv7THi
-createdAt: 2026-01-11T15:29:41.503727
-updatedAt: 2026-01-15T18:24:33.194200
+id: rq_QZvjVQnXs2
+createdAt: 2026-01-17T12:18:03.770160
+updatedAt: 2026-01-17T12:18:22.422651
 workspaceId: wk_4d6NvbCu5c
 folderId: fl_dLLGm635K9
 authentication: {}
@@ -12,7 +12,7 @@ bodyType: null
 description: ''
 headers: []
 method: GET
-name: /latest-videos
-sortPriority: 2000.0
-url: ${[ baseUrl ]}/latest-videos
+name: /image-details
+sortPriority: 3000.001
+url: ${[ baseUrl ]}/image-details/1
 urlParameters: []

@@ -1,8 +1,8 @@
 type: http_request
 model: http_request
-id: rq_L3uxGDvk23
-createdAt: 2026-01-15T17:05:11.548153
-updatedAt: 2026-01-17T12:17:00.307431
+id: rq_2DavwJpN8n
+createdAt: 2026-01-17T12:17:08.958386
+updatedAt: 2026-01-17T12:17:16.598679
 workspaceId: wk_4d6NvbCu5c
 folderId: fl_3TqnwEZLGd
 authentication: {}
@@ -12,7 +12,7 @@ bodyType: null
 description: ''
 headers: []
 method: GET
-name: /share-post
-sortPriority: 3000.0
-url: ${[ baseUrl ]}/share-post/1
+name: /share-image
+sortPriority: 3000.001
+url: ${[ baseUrl ]}/share-image/1
 urlParameters: []
