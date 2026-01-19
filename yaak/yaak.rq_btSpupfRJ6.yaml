@@ -2,7 +2,7 @@ type: http_request
 model: http_request
 id: rq_btSpupfRJ6
 createdAt: 2026-01-12T09:01:04.792338
-updatedAt: 2026-01-16T17:59:20.341982
+updatedAt: 2026-01-18T16:42:44.353230
 workspaceId: wk_4d6NvbCu5c
 folderId: fl_fdddo6sQFL
 authentication:
@@ -13,13 +13,13 @@ body:
   - enabled: true
     id: dqJJkSXgb5
     name: title
-    value: Happy Wednesday (again)!
+    value: Short pose
   - enabled: true
     id: AJYkSy3i7W
     name: content
-    value: "## Byg now supports Markdown!\n\n**Have you ever wanted to express yourself with formatting?** \nNow you can.\n\n### Headers galore...\nYou can:\n- Make headers\n- List your items (like this!)\n\nand...\n1. Be organized\n2. Have fun\n3. Enjoy Byg!\n\n# Thanks for using Byg!\n\nOn behalf of the Byg team, we love you 🫶"
+    value: this is a short post.
   - enabled: true
-    id: Y9KFZmBrRX
+    id: vgtWt2DH7V
     name: ''
     value: ''
 bodyType: multipart/form-data

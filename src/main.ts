@@ -123,6 +123,17 @@ BygApi.use(html())
   .get('/auth/me', async ({ request, set }) => {
     return AuthController.me(request, set)
   })
+  .post(
+    '/hash',
+    async ({ body }): Promise<string> => {
+      return AuthController.hash(body.password)
+    },
+    {
+      body: t.Object({
+        password: t.String(),
+      }),
+    }
+  )
   .get('/', (): string => HomePage)
   .get(
     '/latest-posts',

@@ -198,4 +198,8 @@ export class AuthController {
       return { error: 'Invalid token' }
     }
   }
+
+  static async hash(pass: string): Promise<string> {
+    return await argon2.hash(pass)
+  }
 }

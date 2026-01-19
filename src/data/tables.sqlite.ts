@@ -20,7 +20,9 @@ export const sessions = sqliteTable('sessions', {
   userId: integer('user_id')
     .notNull()
     .references(() => users.id, { onDelete: 'cascade' }),
-  expiresAt: integer('expires_at', { mode: 'timestamp_ms' }).notNull(),
+  expiresAt: integer('expires_at', {
+    mode: 'timestamp_ms',
+  }).notNull(),
 })
 
 export const posts = sqliteTable('posts', {
