@@ -2,6 +2,8 @@
 This repo contains the API for Byg - the beautiful, unhinged, open social media.
 The main Byg-hosted API is accessible [here](https://api.byg.a35.dev/).
 
+> Terms of Service: [Here](https://byg.a35.dev/terms)
+
 ## Why Byg?
 - We love ash.
 - BYGger = BETter (not a reference to an upcoming online gambling service).

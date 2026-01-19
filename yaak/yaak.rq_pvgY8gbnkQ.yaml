@@ -2,7 +2,7 @@ type: http_request
 model: http_request
 id: rq_pvgY8gbnkQ
 createdAt: 2026-01-19T08:49:39.984401
-updatedAt: 2026-01-19T08:52:29.494616
+updatedAt: 2026-01-19T08:56:14.313131
 workspaceId: wk_4d6NvbCu5c
 folderId: fl_FeNuxvXCB6
 authentication: {}
@@ -12,7 +12,7 @@ body:
   - enabled: true
     id: Ts3bZc4Rpm
     name: password
-    value: asdlkfj
+    value: ''
   - enabled: true
     id: sPXHEM3nyc
     name: ''
