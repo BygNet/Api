@@ -40,6 +40,12 @@ const AuthSuccessSchema = t.Object({
   user: UserSchema,
 })
 
+const AnySchema = t.Any()
+
+const AnyArraySchema = t.Array(t.Any())
+
+const HtmlSchema = t.String()
+
 const BygApi = new Elysia().decorate(
   'userId',
   null as number | null
@@ -51,6 +57,9 @@ BygApi.model({
   Status: StatusSchema,
   Empty: EmptySchema,
   String: StringSchema,
+  Any: AnySchema,
+  AnyArray: AnyArraySchema,
+  Html: HtmlSchema,
 })
 
 const IsLocked: boolean = import.meta.env.LOCKED === 'TRUE'
@@ -263,6 +272,9 @@ BygApi.use(html())
   )
   // Browse
   .get('/', (): string => HomePage, {
+    response: {
+      200: t.Ref('Html'),
+    },
     detail: {
       tags: ['Browse'],
       description: 'Return the homepage HTML',
@@ -274,7 +286,7 @@ BygApi.use(html())
       await BrowseController.browsePosts(),
     {
       response: {
-        200: t.Array(t.Any()),
+        200: t.Ref('AnyArray'),
       },
       detail: {
         tags: ['Browse'],
@@ -288,7 +300,7 @@ BygApi.use(html())
       await BrowseController.browseImages(),
     {
       response: {
-        200: t.Array(t.Any()),
+        200: t.Ref('AnyArray'),
       },
       detail: {
         tags: ['Browse'],
@@ -305,7 +317,7 @@ BygApi.use(html())
     },
     {
       response: {
-        200: t.Any(),
+        200: t.Ref('Any'),
       },
       detail: {
         tags: ['Browse'],
@@ -323,7 +335,7 @@ BygApi.use(html())
     },
     {
       response: {
-        200: t.Any(),
+        200: t.Ref('Any'),
       },
       detail: {
         tags: ['Browse'],
@@ -339,7 +351,7 @@ BygApi.use(html())
     },
     {
       response: {
-        200: t.Array(t.Any()),
+        200: t.Ref('AnyArray'),
       },
       detail: {
         tags: ['Browse'],
@@ -392,7 +404,7 @@ BygApi.use(html())
     },
     {
       response: {
-        200: t.String(),
+        200: t.Ref('String'),
       },
       detail: {
         tags: ['Share'],
@@ -407,7 +419,7 @@ BygApi.use(html())
     },
     {
       response: {
-        200: t.String(),
+        200: t.Ref('String'),
       },
       detail: {
         tags: ['Share'],
