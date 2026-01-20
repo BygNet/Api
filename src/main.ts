@@ -18,6 +18,8 @@ import jwt from 'jsonwebtoken'
 import { data } from '@/data/client'
 import { sessions } from '@/data/tables'
 import { eq } from 'drizzle-orm'
+import { swagger } from '@elysiajs/swagger'
+import pkgInfo from '../package.json'
 
 const BygApi = new Elysia().decorate(
   'userId',
@@ -91,6 +93,46 @@ BygApi.use(html())
       ],
     })
   )
+  .use(
+    swagger({
+      path: '/swagger',
+      documentation: {
+        info: {
+          title: pkgInfo.name,
+          version: pkgInfo.version,
+          description: 'Byg API Docs',
+        },
+        tags: [
+          {
+            name: 'Auth',
+            description: 'Authentication & sessions',
+          },
+          {
+            name: 'Browse',
+            description: 'Public content browsing',
+          },
+          {
+            name: 'Interact',
+            description: 'Likes & interactions',
+          },
+          { name: 'Share', description: 'Shareable links' },
+          {
+            name: 'Create',
+            description: 'Content creation endpoints',
+          },
+        ],
+        components: {
+          securitySchemes: {
+            bearerAuth: {
+              type: 'http',
+              scheme: 'bearer',
+            },
+          },
+        },
+        security: [{ bearerAuth: [] }],
+      },
+    })
+  )
   // Auth routes
   .post(
     '/auth/signup',
@@ -103,6 +145,10 @@ BygApi.use(html())
         username: t.String(),
         password: t.String(),
       }),
+      detail: {
+        tags: ['Auth'],
+        description: 'Create a new user account',
+      },
     }
   )
   .post(
@@ -115,14 +161,37 @@ BygApi.use(html())
         email: t.String(),
         password: t.String(),
       }),
+      detail: {
+        tags: ['Auth'],
+        description:
+          'Authenticate a user and return a session token',
+      },
     }
   )
-  .post('/auth/logout', async ({ request, set }) => {
-    return AuthController.logout(request, set)
-  })
-  .get('/auth/me', async ({ request, set }) => {
-    return AuthController.me(request, set)
-  })
+  .post(
+    '/auth/logout',
+    async ({ request, set }) => {
+      return AuthController.logout(request, set)
+    },
+    {
+      detail: {
+        tags: ['Auth'],
+        description: 'Invalidate the current user session',
+      },
+    }
+  )
+  .get(
+    '/auth/me',
+    async ({ request, set }) => {
+      return AuthController.me(request, set)
+    },
+    {
+      detail: {
+        tags: ['Auth'],
+        description: 'Get the currently authenticated user',
+      },
+    }
+  )
   .post(
     '/hash',
     async ({ body }): Promise<string> => {
@@ -132,18 +201,40 @@ BygApi.use(html())
       body: t.Object({
         password: t.String(),
       }),
+      detail: {
+        tags: ['Auth'],
+        description: 'Generate a password hash',
+      },
     }
   )
-  .get('/', (): string => HomePage)
+  // Browse
+  .get('/', (): string => HomePage, {
+    detail: {
+      tags: ['Browse'],
+      description: 'Return the homepage HTML',
+    },
+  })
   .get(
     '/latest-posts',
     async (): Promise<BygPost[]> =>
-      await BrowseController.browsePosts()
+      await BrowseController.browsePosts(),
+    {
+      detail: {
+        tags: ['Browse'],
+        description: 'Fetch the latest posts',
+      },
+    }
   )
   .get(
     '/latest-images',
     async (): Promise<BygImage[]> =>
-      await BrowseController.browseImages()
+      await BrowseController.browseImages(),
+    {
+      detail: {
+        tags: ['Browse'],
+        description: 'Fetch the latest images',
+      },
+    }
   )
   .get(
     '/post-details/:id',
@@ -151,6 +242,13 @@ BygApi.use(html())
       return await BrowseController.getPostInfo(
         Number(params.id)
       )
+    },
+    {
+      detail: {
+        tags: ['Browse'],
+        description:
+          'Get detailed information for a single post',
+      },
     }
   )
   .get(
@@ -159,17 +257,40 @@ BygApi.use(html())
       return await BrowseController.getImageInfo(
         Number(params.id)
       )
+    },
+    {
+      detail: {
+        tags: ['Browse'],
+        description:
+          'Get detailed information for a single image',
+      },
     }
   )
-  .get('/shops', (): BygShop[] => {
-    return Shops
-  })
+  .get(
+    '/shops',
+    (): BygShop[] => {
+      return Shops
+    },
+    {
+      detail: {
+        tags: ['Browse'],
+        description: 'List available shops',
+      },
+    }
+  )
+  // Interact
   .post(
     '/like-post/:id',
     async ({ params, set }): Promise<void> => {
       set.status = await LikeController.likePost(
         Number(params.id)
       )
+    },
+    {
+      detail: {
+        tags: ['Interact'],
+        description: 'Like or unlike a post',
+      },
     }
   )
   .post(
@@ -178,20 +299,41 @@ BygApi.use(html())
       set.status = await LikeController.likeImage(
         Number(params.id)
       )
+    },
+    {
+      detail: {
+        tags: ['Interact'],
+        description: 'Like or unlike an image',
+      },
     }
   )
+  // Share
   .get(
     '/share-post/:id',
     async ({ params }): Promise<string> => {
       return ShareController.sharePost(Number(params.id))
+    },
+    {
+      detail: {
+        tags: ['Share'],
+        description: 'Generate a shareable link for a post',
+      },
     }
   )
   .get(
     '/share-image/:id',
     async ({ params }): Promise<string> => {
       return ShareController.shareImage(Number(params.id))
+    },
+    {
+      detail: {
+        tags: ['Share'],
+        description:
+          'Generate a shareable link for an image',
+      },
     }
   )
+  // Create
   .post(
     '/create-post',
     async ({ body, set, userId }): Promise<void> => {
@@ -207,6 +349,10 @@ BygApi.use(html())
     },
     {
       body: CreatePostSchema,
+      detail: {
+        tags: ['Create'],
+        description: 'Create a new post',
+      },
     }
   )
   .post(
@@ -222,7 +368,13 @@ BygApi.use(html())
         userId
       )
     },
-    { body: UploadImageSchema }
+    {
+      body: UploadImageSchema,
+      detail: {
+        tags: ['Create'],
+        description: 'Upload a new image',
+      },
+    }
   )
 
 // Start
