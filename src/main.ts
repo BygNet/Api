@@ -40,6 +40,13 @@ const BygApi = new Elysia().decorate(
   'userId',
   null as number | null
 )
+
+BygApi.model({
+  User: UserSchema,
+  AuthSuccess: AuthSuccessSchema,
+  Status: StatusSchema,
+})
+
 const IsLocked: boolean = import.meta.env.LOCKED === 'TRUE'
 const writePathPrefixes: string[] = [
   '/create-post',
@@ -162,7 +169,7 @@ BygApi.use(html())
         password: t.String(),
       }),
       response: {
-        200: AuthSuccessSchema,
+        200: t.Ref('AuthSuccess'),
         400: t.Null(),
         409: t.Null(),
         500: t.Null(),
@@ -185,7 +192,7 @@ BygApi.use(html())
         password: t.String(),
       }),
       response: {
-        200: AuthSuccessSchema,
+        200: t.Ref('AuthSuccess'),
         400: t.Null(),
         401: t.Null(),
       },
@@ -204,7 +211,7 @@ BygApi.use(html())
     },
     {
       response: {
-        200: StatusSchema,
+        200: t.Ref('Status'),
         401: t.Null(),
       },
       detail: {
@@ -221,7 +228,7 @@ BygApi.use(html())
     },
     {
       response: {
-        200: UserSchema,
+        200: t.Ref('User'),
         401: t.Null(),
       },
       detail: {
