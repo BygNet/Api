@@ -31,6 +31,8 @@ const StatusSchema = t.Object({
   status: t.String(),
 })
 
+const StringSchema = t.String()
+
 const EmptySchema = t.Null()
 
 const AuthSuccessSchema = t.Object({
@@ -48,6 +50,7 @@ BygApi.model({
   AuthSuccess: AuthSuccessSchema,
   Status: StatusSchema,
   Empty: EmptySchema,
+  String: StringSchema,
 })
 
 const IsLocked: boolean = import.meta.env.LOCKED === 'TRUE'
@@ -250,7 +253,7 @@ BygApi.use(html())
         password: t.String(),
       }),
       response: {
-        200: t.String(),
+        200: t.Ref('String'),
       },
       detail: {
         tags: ['Auth'],
