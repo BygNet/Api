@@ -60,12 +60,15 @@ function publicUser(user: {
 }
 
 export class AuthController {
-  static async signup(body: SignupBody, set: any) {
+  static async signup(
+    body: SignupBody,
+    set: any
+  ): Promise<{ token: string; user: PublicUser } | void> {
     const { email, username, password } = body
 
     if (!email || !username || !password) {
       set.status = 400
-      return { error: 'Missing fields' }
+      return
     }
 
     const passHash: string = await argon2.hash(password)
@@ -77,7 +80,7 @@ export class AuthController {
         .values({ email, username, passHash })
     } catch {
       set.status = 409
-      return { error: 'User already exists' }
+      return
     }
 
     const user = await data.query.users.findFirst({
@@ -86,7 +89,7 @@ export class AuthController {
 
     if (!user) {
       set.status = 500
-      return { error: 'Failed to create user' }
+      return
     }
 
     const token: string = await issueSession(user.id)
@@ -97,12 +100,15 @@ export class AuthController {
     }
   }
 
-  static async login(body: LoginBody, set: any) {
+  static async login(
+    body: LoginBody,
+    set: any
+  ): Promise<{ token: string; user: PublicUser } | void> {
     const { email, password } = body
 
     if (!email || !password) {
       set.status = 400
-      return { error: 'Missing credentials' }
+      return
     }
 
     const user = await data.query.users.findFirst({
@@ -111,7 +117,7 @@ export class AuthController {
 
     if (!user) {
       set.status = 401
-      return { error: 'Invalid email or password' }
+      return
     }
 
     const valid: boolean = await argon2.verify(
@@ -120,7 +126,7 @@ export class AuthController {
     )
     if (!valid) {
       set.status = 401
-      return { error: 'Invalid email or password' }
+      return
     }
 
     const token: string = await issueSession(user.id)
@@ -156,11 +162,14 @@ export class AuthController {
     return
   }
 
-  static async me(request: Request, set: any) {
+  static async me(
+    request: Request,
+    set: any
+  ): Promise<PublicUser | void> {
     const auth = request.headers.get('authorization')
     if (!auth) {
       set.status = 401
-      return { error: 'Unauthorized' }
+      return
     }
 
     try {
@@ -176,7 +185,7 @@ export class AuthController {
         session.expiresAt.getTime() < Date.now()
       ) {
         set.status = 401
-        return { error: 'Session expired' }
+        return
       }
 
       const user = await data.query.users.findFirst({
@@ -185,7 +194,7 @@ export class AuthController {
 
       if (!user) {
         set.status = 401
-        return { error: 'User not found' }
+        return
       }
 
       return {
@@ -195,7 +204,7 @@ export class AuthController {
       }
     } catch {
       set.status = 401
-      return { error: 'Invalid token' }
+      return
     }
   }
 

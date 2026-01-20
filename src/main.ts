@@ -21,6 +21,21 @@ import { eq } from 'drizzle-orm'
 import { swagger } from '@elysiajs/swagger'
 import pkgInfo from '../package.json'
 
+const UserSchema = t.Object({
+  id: t.Number(),
+  email: t.String(),
+  username: t.String(),
+})
+
+const StatusSchema = t.Object({
+  status: t.String(),
+})
+
+const AuthSuccessSchema = t.Object({
+  token: t.String(),
+  user: UserSchema,
+})
+
 const BygApi = new Elysia().decorate(
   'userId',
   null as number | null
@@ -136,8 +151,9 @@ BygApi.use(html())
   // Auth routes
   .post(
     '/auth/signup',
-    ({ body, set }) => {
-      return AuthController.signup(body as any, set)
+    async ({ body, set }) => {
+      const result = await AuthController.signup(body as any, set)
+      return result ?? null
     },
     {
       body: t.Object({
@@ -145,6 +161,12 @@ BygApi.use(html())
         username: t.String(),
         password: t.String(),
       }),
+      response: {
+        200: AuthSuccessSchema,
+        400: t.Null(),
+        409: t.Null(),
+        500: t.Null(),
+      },
       detail: {
         tags: ['Auth'],
         description: 'Create a new user account',
@@ -153,14 +175,20 @@ BygApi.use(html())
   )
   .post(
     '/auth/login',
-    ({ body, set }) => {
-      return AuthController.login(body as any, set)
+    async ({ body, set }) => {
+      const result = await AuthController.login(body as any, set)
+      return result ?? null
     },
     {
       body: t.Object({
         email: t.String(),
         password: t.String(),
       }),
+      response: {
+        200: AuthSuccessSchema,
+        400: t.Null(),
+        401: t.Null(),
+      },
       detail: {
         tags: ['Auth'],
         description:
@@ -171,9 +199,14 @@ BygApi.use(html())
   .post(
     '/auth/logout',
     async ({ request, set }) => {
-      return AuthController.logout(request, set)
+      const result = await AuthController.logout(request, set)
+      return result ?? null
     },
     {
+      response: {
+        200: StatusSchema,
+        401: t.Null(),
+      },
       detail: {
         tags: ['Auth'],
         description: 'Invalidate the current user session',
@@ -183,9 +216,14 @@ BygApi.use(html())
   .get(
     '/auth/me',
     async ({ request, set }) => {
-      return AuthController.me(request, set)
+      const result = await AuthController.me(request, set)
+      return result ?? null
     },
     {
+      response: {
+        200: UserSchema,
+        401: t.Null(),
+      },
       detail: {
         tags: ['Auth'],
         description: 'Get the currently authenticated user',
@@ -201,6 +239,9 @@ BygApi.use(html())
       body: t.Object({
         password: t.String(),
       }),
+      response: {
+        200: t.String(),
+      },
       detail: {
         tags: ['Auth'],
         description: 'Generate a password hash',
@@ -219,6 +260,9 @@ BygApi.use(html())
     async (): Promise<BygPost[]> =>
       await BrowseController.browsePosts(),
     {
+      response: {
+        200: t.Array(t.Any()),
+      },
       detail: {
         tags: ['Browse'],
         description: 'Fetch the latest posts',
@@ -230,6 +274,9 @@ BygApi.use(html())
     async (): Promise<BygImage[]> =>
       await BrowseController.browseImages(),
     {
+      response: {
+        200: t.Array(t.Any()),
+      },
       detail: {
         tags: ['Browse'],
         description: 'Fetch the latest images',
@@ -244,6 +291,9 @@ BygApi.use(html())
       )
     },
     {
+      response: {
+        200: t.Any(),
+      },
       detail: {
         tags: ['Browse'],
         description:
@@ -259,6 +309,9 @@ BygApi.use(html())
       )
     },
     {
+      response: {
+        200: t.Any(),
+      },
       detail: {
         tags: ['Browse'],
         description:
@@ -272,6 +325,9 @@ BygApi.use(html())
       return Shops
     },
     {
+      response: {
+        200: t.Array(t.Any()),
+      },
       detail: {
         tags: ['Browse'],
         description: 'List available shops',
@@ -281,12 +337,16 @@ BygApi.use(html())
   // Interact
   .post(
     '/like-post/:id',
-    async ({ params, set }): Promise<void> => {
+    async ({ params, set }): Promise<null> => {
       set.status = await LikeController.likePost(
         Number(params.id)
       )
+      return null
     },
     {
+      response: {
+        200: t.Null(),
+      },
       detail: {
         tags: ['Interact'],
         description: 'Like or unlike a post',
@@ -295,12 +355,16 @@ BygApi.use(html())
   )
   .post(
     '/like-image/:id',
-    async ({ params, set }): Promise<void> => {
+    async ({ params, set }): Promise<null> => {
       set.status = await LikeController.likeImage(
         Number(params.id)
       )
+      return null
     },
     {
+      response: {
+        200: t.Null(),
+      },
       detail: {
         tags: ['Interact'],
         description: 'Like or unlike an image',
@@ -314,6 +378,9 @@ BygApi.use(html())
       return ShareController.sharePost(Number(params.id))
     },
     {
+      response: {
+        200: t.String(),
+      },
       detail: {
         tags: ['Share'],
         description: 'Generate a shareable link for a post',
@@ -326,6 +393,9 @@ BygApi.use(html())
       return ShareController.shareImage(Number(params.id))
     },
     {
+      response: {
+        200: t.String(),
+      },
       detail: {
         tags: ['Share'],
         description:
@@ -336,19 +406,24 @@ BygApi.use(html())
   // Create
   .post(
     '/create-post',
-    async ({ body, set, userId }): Promise<void> => {
+    async ({ body, set, userId }): Promise<null> => {
       if (!userId) {
         set.status = 401
-        return
+        return null
       }
 
       set.status = await CreateController.createPost(
         body,
         userId
       )
+      return null
     },
     {
       body: CreatePostSchema,
+      response: {
+        200: t.Null(),
+        401: t.Null(),
+      },
       detail: {
         tags: ['Create'],
         description: 'Create a new post',
@@ -357,19 +432,24 @@ BygApi.use(html())
   )
   .post(
     '/upload-image',
-    async ({ body, set, userId }): Promise<void> => {
+    async ({ body, set, userId }): Promise<null> => {
       if (!userId) {
         set.status = 401
-        return
+        return null
       }
 
       set.status = await CreateController.uploadImage(
         body,
         userId
       )
+      return null
     },
     {
       body: UploadImageSchema,
+      response: {
+        200: t.Null(),
+        401: t.Null(),
+      },
       detail: {
         tags: ['Create'],
         description: 'Upload a new image',

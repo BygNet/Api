@@ -30,6 +30,7 @@ export const HomePage: string = `
   <body>
     <h1>Byg API home.</h1>
     <a href="https://byg.a35.dev">Byg App for Web.</a>
+    <a href="/swagger">Byg API Swagger.</a>
   </body>
 </html>
 `
