@@ -31,6 +31,8 @@ const StatusSchema = t.Object({
   status: t.String(),
 })
 
+const EmptySchema = t.Null()
+
 const AuthSuccessSchema = t.Object({
   token: t.String(),
   user: UserSchema,
@@ -45,6 +47,7 @@ BygApi.model({
   User: UserSchema,
   AuthSuccess: AuthSuccessSchema,
   Status: StatusSchema,
+  Empty: EmptySchema,
 })
 
 const IsLocked: boolean = import.meta.env.LOCKED === 'TRUE'
@@ -170,9 +173,9 @@ BygApi.use(html())
       }),
       response: {
         200: t.Ref('AuthSuccess'),
-        400: t.Null(),
-        409: t.Null(),
-        500: t.Null(),
+        400: t.Ref('Empty'),
+        409: t.Ref('Empty'),
+        500: t.Ref('Empty'),
       },
       detail: {
         tags: ['Auth'],
@@ -193,8 +196,8 @@ BygApi.use(html())
       }),
       response: {
         200: t.Ref('AuthSuccess'),
-        400: t.Null(),
-        401: t.Null(),
+        400: t.Ref('Empty'),
+        401: t.Ref('Empty'),
       },
       detail: {
         tags: ['Auth'],
@@ -212,7 +215,7 @@ BygApi.use(html())
     {
       response: {
         200: t.Ref('Status'),
-        401: t.Null(),
+        401: t.Ref('Empty'),
       },
       detail: {
         tags: ['Auth'],
@@ -229,7 +232,7 @@ BygApi.use(html())
     {
       response: {
         200: t.Ref('User'),
-        401: t.Null(),
+        401: t.Ref('Empty'),
       },
       detail: {
         tags: ['Auth'],
@@ -352,7 +355,7 @@ BygApi.use(html())
     },
     {
       response: {
-        200: t.Null(),
+        200: t.Ref('Empty'),
       },
       detail: {
         tags: ['Interact'],
@@ -370,7 +373,7 @@ BygApi.use(html())
     },
     {
       response: {
-        200: t.Null(),
+        200: t.Ref('Empty'),
       },
       detail: {
         tags: ['Interact'],
@@ -428,8 +431,8 @@ BygApi.use(html())
     {
       body: CreatePostSchema,
       response: {
-        200: t.Null(),
-        401: t.Null(),
+        200: t.Ref('Empty'),
+        401: t.Ref('Empty'),
       },
       detail: {
         tags: ['Create'],
@@ -454,8 +457,8 @@ BygApi.use(html())
     {
       body: UploadImageSchema,
       response: {
-        200: t.Null(),
-        401: t.Null(),
+        200: t.Ref('Empty'),
+        401: t.Ref('Empty'),
       },
       detail: {
         tags: ['Create'],
