@@ -127,7 +127,10 @@ BygApi.use(html())
       origin: [
         'http://localhost:5173',
         'https://byg.a35.dev',
+        'capacitor://localhost',
+        'http://localhost'
       ],
+      credentials: true
     })
   )
   .use(
