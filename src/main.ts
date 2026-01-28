@@ -142,9 +142,9 @@ BygApi.use(html())
         'http://localhost:5173',
         'https://byg.a35.dev',
         'capacitor://localhost',
-        'http://localhost'
+        'http://localhost',
       ],
-      credentials: true
+      credentials: true,
     })
   )
   .use(
@@ -191,7 +191,10 @@ BygApi.use(html())
   .post(
     '/auth/signup',
     async ({ body, set }) => {
-      const result = await AuthController.signup(body as any, set)
+      const result = await AuthController.signup(
+        body as any,
+        set
+      )
       return result ?? null
     },
     {
@@ -215,7 +218,10 @@ BygApi.use(html())
   .post(
     '/auth/login',
     async ({ body, set }) => {
-      const result = await AuthController.login(body as any, set)
+      const result = await AuthController.login(
+        body as any,
+        set
+      )
       return result ?? null
     },
     {
@@ -238,7 +244,10 @@ BygApi.use(html())
   .post(
     '/auth/logout',
     async ({ request, set }) => {
-      const result = await AuthController.logout(request, set)
+      const result = await AuthController.logout(
+        request,
+        set
+      )
       return result ?? null
     },
     {

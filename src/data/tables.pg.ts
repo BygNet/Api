@@ -38,7 +38,9 @@ export const posts = pgTable('posts', {
     .defaultNow(),
   likes: integer('likes').notNull().default(0),
   shares: integer('shares').notNull().default(0),
-  commentCount: integer('comment_count').notNull().default(0),
+  commentCount: integer('comment_count')
+    .notNull()
+    .default(0),
 })
 
 export const images = pgTable('images', {
@@ -53,7 +55,9 @@ export const images = pgTable('images', {
     .defaultNow(),
   likes: integer('likes').notNull().default(0),
   shares: integer('shares').notNull().default(0),
-  commentCount: integer('comment_count').notNull().default(0),
+  commentCount: integer('comment_count')
+    .notNull()
+    .default(0),
 })
 
 export const postComments = pgTable('post_comments', {

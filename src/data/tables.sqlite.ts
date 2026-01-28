@@ -37,7 +37,9 @@ export const posts = sqliteTable('posts', {
     .default(sql`(strftime('%s','now') * 1000)`),
   likes: integer('likes').notNull().default(0),
   shares: integer('shares').notNull().default(0),
-  commentCount: integer('comment_count').notNull().default(0),
+  commentCount: integer('comment_count')
+    .notNull()
+    .default(0),
 })
 
 export const images = sqliteTable('images', {
@@ -52,7 +54,9 @@ export const images = sqliteTable('images', {
     .default(sql`(strftime('%s','now') * 1000)`),
   likes: integer('likes').notNull().default(0),
   shares: integer('shares').notNull().default(0),
-  commentCount: integer('comment_count').notNull().default(0),
+  commentCount: integer('comment_count')
+    .notNull()
+    .default(0),
 })
 
 export const postComments = sqliteTable('post_comments', {
