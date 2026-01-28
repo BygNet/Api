@@ -14,12 +14,14 @@ import { isProd } from '@/data/client'
 import { cors } from '@elysiajs/cors'
 import { ShareController } from '@/share/controller'
 import { AuthController } from '@/auth/controller'
+import { CommentsController } from '@/comments/controller'
 import jwt from 'jsonwebtoken'
 import { data } from '@/data/client'
 import { sessions } from '@/data/tables'
 import { eq } from 'drizzle-orm'
 import { swagger } from '@elysiajs/swagger'
 import pkgInfo from '../package.json'
+import { CommentSchema } from '@/schemas'
 
 const UserSchema = t.Object({
   id: t.Number(),
@@ -44,6 +46,15 @@ const AnySchema = t.Any()
 
 const AnyArraySchema = t.Array(t.Any())
 
+const CommentArraySchema = t.Array(
+  t.Object({
+    id: t.Number(),
+    author: t.String(),
+    content: t.String(),
+    createdDate: t.String(),
+  })
+)
+
 const HtmlSchema = t.String()
 
 const BygApi = new Elysia().decorate(
@@ -59,6 +70,7 @@ BygApi.model({
   String: StringSchema,
   Any: AnySchema,
   AnyArray: AnyArraySchema,
+  CommentArray: CommentArraySchema,
   Html: HtmlSchema,
 })
 
@@ -70,6 +82,8 @@ const writePathPrefixes: string[] = [
   '/like-image',
   '/like-video',
   '/share-post',
+  '/comment-post',
+  '/comment-image',
 ]
 
 const JWT_SECRET = process.env.JWT_SECRET ?? 'dev-secret'
@@ -484,6 +498,97 @@ BygApi.use(html())
       },
     }
   )
+  // Comments
+  .get(
+    '/post-comments/:id',
+    async ({ params }) => {
+      return await CommentsController.getPostComments(
+        Number(params.id)
+      )
+    },
+    {
+      response: {
+        200: t.Ref('CommentArray'),
+      },
+      detail: {
+        tags: ['Interact'],
+        description: 'Get comments for a post',
+      },
+    }
+  )
+  .post(
+    '/comment-post',
+    async ({ body, set, userId }): Promise<null> => {
+      if (!userId) {
+        set.status = 401
+        return null
+      }
+
+      set.status = await CommentsController.commentPost(
+        body as any,
+        userId
+      )
+      return null
+    },
+    {
+      body: CommentSchema,
+      response: {
+        200: t.Ref('Empty'),
+        400: t.Ref('Empty'),
+        401: t.Ref('Empty'),
+        500: t.Ref('Empty'),
+      },
+      detail: {
+        tags: ['Interact'],
+        description: 'Add a comment to a post',
+      },
+    }
+  )
+  .get(
+    '/image-comments/:id',
+    async ({ params }) => {
+      return await CommentsController.getImageComments(
+        Number(params.id)
+      )
+    },
+    {
+      response: {
+        200: t.Ref('CommentArray'),
+      },
+      detail: {
+        tags: ['Interact'],
+        description: 'Get comments for an image',
+      },
+    }
+  )
+  .post(
+    '/comment-image',
+    async ({ body, set, userId }): Promise<null> => {
+      if (!userId) {
+        set.status = 401
+        return null
+      }
+
+      set.status = await CommentsController.commentImage(
+        body as any,
+        userId
+      )
+      return null
+    },
+    {
+      body: CommentSchema,
+      response: {
+        200: t.Ref('Empty'),
+        400: t.Ref('Empty'),
+        401: t.Ref('Empty'),
+        500: t.Ref('Empty'),
+      },
+      detail: {
+        tags: ['Interact'],
+        description: 'Add a comment to an image',
+      },
+    }
+  )
 
 // Start
 if (!isProd) {
@@ -495,5 +600,3 @@ if (!isProd) {
   BygApi.listen(3000)
   console.info('Elysia starting for Prod.')
 }
-
-export default BygApi

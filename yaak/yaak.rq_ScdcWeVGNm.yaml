@@ -1,10 +1,10 @@
 type: http_request
 model: http_request
-id: rq_cKxZa9GcvR
-createdAt: 2026-01-11T15:12:51.863575
-updatedAt: 2026-01-28T16:28:58.408613
+id: rq_ScdcWeVGNm
+createdAt: 2026-01-28T16:29:01.199724
+updatedAt: 2026-01-28T16:29:39.080597
 workspaceId: wk_4d6NvbCu5c
-folderId: null
+folderId: fl_a3RbdNRMvt
 authentication: {}
 authenticationType: null
 body: {}
@@ -12,7 +12,7 @@ bodyType: null
 description: ''
 headers: []
 method: GET
-name: /
+name: /post-comments
 sortPriority: 0.0
-url: ${[ baseUrl ]}/
+url: ${[ baseUrl ]}/post-comments/1
 urlParameters: []

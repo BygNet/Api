@@ -8,4 +8,11 @@ if (isProd) {
   tables = await import('./tables.sqlite')
 }
 
-export const { users, sessions, posts, images } = tables
+export const {
+  users,
+  sessions,
+  posts,
+  images,
+  postComments,
+  imageComments,
+} = tables

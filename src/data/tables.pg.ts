@@ -38,6 +38,7 @@ export const posts = pgTable('posts', {
     .defaultNow(),
   likes: integer('likes').notNull().default(0),
   shares: integer('shares').notNull().default(0),
+  commentCount: integer('comment_count').notNull().default(0),
 })
 
 export const images = pgTable('images', {
@@ -52,4 +53,33 @@ export const images = pgTable('images', {
     .defaultNow(),
   likes: integer('likes').notNull().default(0),
   shares: integer('shares').notNull().default(0),
+  commentCount: integer('comment_count').notNull().default(0),
+})
+
+export const postComments = pgTable('post_comments', {
+  id: integer('id').primaryKey(),
+  postId: integer('post_id')
+    .notNull()
+    .references(() => posts.id, { onDelete: 'cascade' }),
+  authorId: integer('author_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  content: text('content').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+})
+
+export const imageComments = pgTable('image_comments', {
+  id: integer('id').primaryKey(),
+  imageId: integer('image_id')
+    .notNull()
+    .references(() => images.id, { onDelete: 'cascade' }),
+  authorId: integer('author_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  content: text('content').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true })
+    .notNull()
+    .defaultNow(),
 })

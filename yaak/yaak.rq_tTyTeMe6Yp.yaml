@@ -1,0 +1,18 @@
+type: http_request
+model: http_request
+id: rq_tTyTeMe6Yp
+createdAt: 2026-01-28T16:46:25.767732
+updatedAt: 2026-01-28T16:46:36.196758
+workspaceId: wk_4d6NvbCu5c
+folderId: fl_a3RbdNRMvt
+authentication: {}
+authenticationType: null
+body: {}
+bodyType: null
+description: ''
+headers: []
+method: GET
+name: /image-comments
+sortPriority: 0.001
+url: ${[ baseUrl ]}/image-comments/1
+urlParameters: []

@@ -12,3 +12,9 @@ export const UploadImageSchema = t.Object({
 })
 export type UploadImageBody =
   typeof UploadImageSchema.static
+
+export const CommentSchema = t.Object({
+  id: t.Number(),
+  content: t.String(),
+})
+export type CommentBody = typeof CommentSchema.static

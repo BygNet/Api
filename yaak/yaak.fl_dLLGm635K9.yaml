@@ -2,7 +2,7 @@ type: folder
 model: folder
 id: fl_dLLGm635K9
 createdAt: 2026-01-15T18:23:58.410511
-updatedAt: 2026-01-15T18:24:03.226647
+updatedAt: 2026-01-28T16:28:58.411161
 workspaceId: wk_4d6NvbCu5c
 folderId: null
 authentication: {}
@@ -10,4 +10,4 @@ authenticationType: null
 description: ''
 headers: []
 name: browse
-sortPriority: 1000.0
+sortPriority: 2000.0

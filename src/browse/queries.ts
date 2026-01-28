@@ -11,6 +11,7 @@ type PostRow = {
   author: string | null
   likes: number
   shares: number
+  commentCount: number
 }
 
 type ImageRow = {
@@ -21,6 +22,7 @@ type ImageRow = {
   author: string | null
   likes: number
   shares: number
+  commentCount: number
 }
 
 export abstract class BrowseQueries {
@@ -34,6 +36,7 @@ export abstract class BrowseQueries {
         author: users.username,
         likes: posts.likes,
         shares: posts.shares,
+        commentCount: posts.commentCount,
       })
       .from(posts)
       .leftJoin(users, eq(posts.authorId, users.id))
@@ -57,6 +60,7 @@ export abstract class BrowseQueries {
         author: users.username,
         likes: posts.likes,
         shares: posts.shares,
+        commentCount: posts.commentCount,
       })
       .from(posts)
       .leftJoin(users, eq(posts.authorId, users.id))
@@ -80,6 +84,7 @@ export abstract class BrowseQueries {
         author: users.username,
         likes: images.likes,
         shares: images.shares,
+        commentCount: images.commentCount,
       })
       .from(images)
       .leftJoin(users, eq(images.authorId, users.id))
@@ -105,6 +110,7 @@ export abstract class BrowseQueries {
         author: users.username,
         likes: images.likes,
         shares: images.shares,
+        commentCount: images.commentCount,
       })
       .from(images)
       .leftJoin(users, eq(images.authorId, users.id))

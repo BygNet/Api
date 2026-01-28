@@ -1,0 +1,28 @@
+type: http_request
+model: http_request
+id: rq_bR4ihvwHTG
+createdAt: 2026-01-28T17:12:15.941578
+updatedAt: 2026-01-28T17:14:21.578098
+workspaceId: wk_4d6NvbCu5c
+folderId: fl_a3RbdNRMvt
+authentication:
+  token: ${[ testToken ]}
+authenticationType: bearer
+body:
+  text: |-
+    {
+      "id": 1,
+      "content": "test comment"
+    }
+bodyType: application/json
+description: ''
+headers:
+- enabled: true
+  name: Content-Type
+  value: application/json
+  id: g4DhX9CCF6
+method: POST
+name: /comment-post
+sortPriority: 0.001
+url: ${[ baseUrl ]}/comment-post
+urlParameters: []
