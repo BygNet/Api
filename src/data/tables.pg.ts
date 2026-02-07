@@ -9,7 +9,8 @@ import {
 export const users = pgTable('users', {
   id: integer('id').primaryKey(),
   email: text('email').notNull().unique(),
-  username: text('username').notNull().unique(),
+  username: text('username').notNull(),
+  usernameLower: text('username_lower').notNull().unique(),
   passHash: text('pass_hash').notNull(),
   createdAt: timestamp('created_at', { withTimezone: true })
     .notNull()

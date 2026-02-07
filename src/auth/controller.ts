@@ -72,12 +72,13 @@ export class AuthController {
     }
 
     const passHash: string = await argon2.hash(password)
+    const usernameLower: string = username.toLowerCase()
 
     // Insert user - only this part can cause a 409
     try {
       await data
         .insert(users)
-        .values({ email, username, passHash })
+        .values({ email, username, usernameLower, passHash })
     } catch {
       set.status = 409
       return

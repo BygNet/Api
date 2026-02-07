@@ -8,7 +8,8 @@ import { sql } from 'drizzle-orm'
 export const users = sqliteTable('users', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   email: text('email').notNull().unique(),
-  username: text('username').notNull().unique(),
+  username: text('username').notNull(),
+  usernameLower: text('username_lower').notNull().unique(),
   passHash: text('pass_hash').notNull(),
   createdAt: integer('created_at', { mode: 'timestamp_ms' })
     .notNull()
