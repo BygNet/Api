@@ -1,6 +1,6 @@
 {
-  "name": "byg-api",
-  "version": "1.1.0",
+  "name": "@bygnet/api",
+  "version": "1.2.0",
   "scripts": {
     "dev": "bun run --watch src/main.ts",
     "format": "prettier --ignore-path .prettierignore --write .",
