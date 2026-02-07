@@ -66,7 +66,7 @@ export abstract class CommentsQueries {
     authorId: number,
     content: string
   ): Promise<void> {
-    await data.transaction(async tx => {
+    await data.transaction(async (tx: typeof data) => {
       await tx.insert(postComments).values({
         postId,
         authorId,
@@ -87,7 +87,7 @@ export abstract class CommentsQueries {
     authorId: number,
     content: string
   ): Promise<void> {
-    await data.transaction(async tx => {
+    await data.transaction(async (tx: typeof data) => {
       await tx.insert(imageComments).values({
         imageId,
         authorId,
