@@ -83,7 +83,7 @@ export class AuthController {
 
     const passHash: string = await argon2.hash(password)
 
-    // Insert user - only this part can cause a 409
+    // Insert user - can cause a 409 if email or username is duplicate
     try {
       await data
         .insert(users)
