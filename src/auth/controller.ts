@@ -1,6 +1,6 @@
 import { data } from '@/data/client'
 import { sessions, users } from '@/data/tables'
-import { eq } from 'drizzle-orm'
+import { eq, sql } from 'drizzle-orm'
 import argon2 from 'argon2'
 import jwt from 'jsonwebtoken'
 
@@ -71,14 +71,23 @@ export class AuthController {
       return
     }
 
+    // Check if username already exists (case-insensitive)
+    const existingUser = await data.query.users.findFirst({
+      where: sql`lower(${users.username}) = lower(${username})`,
+    })
+
+    if (existingUser) {
+      set.status = 409
+      return
+    }
+
     const passHash: string = await argon2.hash(password)
-    const usernameLower: string = username.toLowerCase()
 
     // Insert user - only this part can cause a 409
     try {
       await data
         .insert(users)
-        .values({ email, username, usernameLower, passHash })
+        .values({ email, username, passHash })
     } catch {
       set.status = 409
       return
