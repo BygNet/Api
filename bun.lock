@@ -5,6 +5,7 @@
     "": {
       "name": "Byg",
       "dependencies": {
+        "@a35hie/ts-pkg": "^0.3.1",
         "@elysiajs/cors": "^1.4.1",
         "@elysiajs/html": "^1.4.0",
         "@elysiajs/swagger": "^1.3.1",
@@ -23,6 +24,8 @@
     },
   },
   "packages": {
+    "@a35hie/ts-pkg": ["@a35hie/ts-pkg@0.3.1", "", { "peerDependencies": { "typescript": "^5.9.3" }, "bin": { "ts-pkg": "dist/cli.js" } }, "sha512-YQexb8HtH3HlikDBhlTabfi8t6DzbuqigdMYDw5BbiP9+p+Y5Vas7B7hFTTUccyL93okijb84mRu6vV4AyXslQ=="],
+
     "@borewit/text-codec": ["@borewit/text-codec@0.2.1", "", {}, "sha512-k7vvKPbf7J2fZ5klGRD9AeKfUvojuZIQ3BT5u7Jfv+puwXkUBUT5PVyMDfJZpy30CBDXGMgw7fguK/lpOMBvgw=="],
 
     "@drizzle-team/brocli": ["@drizzle-team/brocli@0.10.2", "", {}, "sha512-z33Il7l5dKjUgGULTqBsQBQwckHh5AbIuxhdsIxDDiZAzBOrZO6q9ogcWC65kU382AfynTfgNumVcNIjuIua6w=="],

@@ -20,7 +20,7 @@ import { data } from '@/data/client'
 import { sessions } from '@/data/tables'
 import { eq } from 'drizzle-orm'
 import { swagger } from '@elysiajs/swagger'
-import pkgInfo from '../package.json'
+import pkgInfo from '../package'
 import { CommentSchema } from '@/schemas'
 
 const UserSchema = t.Object({
@@ -153,8 +153,8 @@ BygApi.use(html())
       documentation: {
         info: {
           title: pkgInfo.name,
-          version: pkgInfo.version,
-          description: 'Byg API Docs',
+          version: pkgInfo.version!,
+          description: pkgInfo.description,
         },
         tags: [
           {
