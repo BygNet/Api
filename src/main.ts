@@ -1,5 +1,6 @@
 import { Elysia, t } from 'elysia'
-import { BygImage, BygPost, BygShop } from '@/types'
+import { BygImage, BygPost } from '@/types'
+import { BygShop } from '@bygnet/types'
 import { BrowseController } from '@/browse/controller'
 import { HomePage } from '@/htmlPages'
 import { html } from '@elysiajs/html'

@@ -1,10 +1,4 @@
-import {
-  pgTable,
-  integer,
-  text,
-  uuid,
-  timestamp,
-} from 'drizzle-orm/pg-core'
+import { pgTable, integer, text, uuid, timestamp } from 'drizzle-orm/pg-core'
 
 export const users = pgTable('users', {
   id: integer('id').primaryKey(),
@@ -14,6 +8,10 @@ export const users = pgTable('users', {
   createdAt: timestamp('created_at', { withTimezone: true })
     .notNull()
     .defaultNow(),
+  bio: text('bio'),
+  avatarUrl: text('avatar_url'),
+  bannerUrl: text('banner_url'),
+  subscriptionState: text('subscription_state'),
 })
 
 export const sessions = pgTable('sessions', {
@@ -38,9 +36,7 @@ export const posts = pgTable('posts', {
     .defaultNow(),
   likes: integer('likes').notNull().default(0),
   shares: integer('shares').notNull().default(0),
-  commentCount: integer('comment_count')
-    .notNull()
-    .default(0),
+  commentCount: integer('comment_count').notNull().default(0),
 })
 
 export const images = pgTable('images', {
@@ -55,9 +51,7 @@ export const images = pgTable('images', {
     .defaultNow(),
   likes: integer('likes').notNull().default(0),
   shares: integer('shares').notNull().default(0),
-  commentCount: integer('comment_count')
-    .notNull()
-    .default(0),
+  commentCount: integer('comment_count').notNull().default(0),
 })
 
 export const postComments = pgTable('post_comments', {
@@ -83,6 +77,19 @@ export const imageComments = pgTable('image_comments', {
     .notNull()
     .references(() => users.id, { onDelete: 'cascade' }),
   content: text('content').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+})
+
+export const followings = pgTable('followings', {
+  id: integer('id').primaryKey(),
+  followerId: integer('follower_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  followingId: integer('following_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
   createdAt: timestamp('created_at', { withTimezone: true })
     .notNull()
     .defaultNow(),

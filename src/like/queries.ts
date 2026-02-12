@@ -4,9 +4,7 @@ import { eq, sql } from 'drizzle-orm'
 import { posts, images } from '@/data/tables'
 
 export abstract class LikeQueries {
-  static async getPost(
-    id: number
-  ): Promise<BygPost | null> {
+  static async getPost(id: number): Promise<BygPost | null> {
     const post: BygPost[] = await data
       .select()
       .from(posts)
@@ -16,9 +14,7 @@ export abstract class LikeQueries {
     return post[0] ?? null
   }
 
-  static async getImage(
-    id: number
-  ): Promise<BygImage | null> {
+  static async getImage(id: number): Promise<BygImage | null> {
     const image: BygImage[] = await data
       .select()
       .from(images)

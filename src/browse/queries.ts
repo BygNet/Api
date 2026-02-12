@@ -98,9 +98,7 @@ export abstract class BrowseQueries {
     }))
   }
 
-  static async getImageById(
-    id: number
-  ): Promise<BygImage[]> {
+  static async getImageById(id: number): Promise<BygImage[]> {
     const rows: ImageRow[] = await data
       .select({
         id: images.id,

@@ -1,6 +1,5 @@
 let tables: any
-const isProd: boolean =
-  process.env.NODE_ENV === 'production'
+const isProd: boolean = process.env.NODE_ENV === 'production'
 
 if (isProd) {
   tables = await import('./tables.pg')
@@ -15,4 +14,5 @@ export const {
   images,
   postComments,
   imageComments,
+  followings,
 } = tables

@@ -1,8 +1,4 @@
-import {
-  sqliteTable,
-  integer,
-  text,
-} from 'drizzle-orm/sqlite-core'
+import { sqliteTable, integer, text } from 'drizzle-orm/sqlite-core'
 import { sql } from 'drizzle-orm'
 
 export const users = sqliteTable('users', {
@@ -13,6 +9,10 @@ export const users = sqliteTable('users', {
   createdAt: integer('created_at', { mode: 'timestamp_ms' })
     .notNull()
     .default(sql`(strftime('%s','now') * 1000)`),
+  bio: text('bio'),
+  avatarUrl: text('avatar_url'),
+  bannerUrl: text('banner_url'),
+  subscriptionState: text('subscription_state').default('plus_legacy'),
 })
 
 export const sessions = sqliteTable('sessions', {
@@ -37,9 +37,7 @@ export const posts = sqliteTable('posts', {
     .default(sql`(strftime('%s','now') * 1000)`),
   likes: integer('likes').notNull().default(0),
   shares: integer('shares').notNull().default(0),
-  commentCount: integer('comment_count')
-    .notNull()
-    .default(0),
+  commentCount: integer('comment_count').notNull().default(0),
 })
 
 export const images = sqliteTable('images', {
@@ -54,9 +52,7 @@ export const images = sqliteTable('images', {
     .default(sql`(strftime('%s','now') * 1000)`),
   likes: integer('likes').notNull().default(0),
   shares: integer('shares').notNull().default(0),
-  commentCount: integer('comment_count')
-    .notNull()
-    .default(0),
+  commentCount: integer('comment_count').notNull().default(0),
 })
 
 export const postComments = sqliteTable('post_comments', {
@@ -82,6 +78,19 @@ export const imageComments = sqliteTable('image_comments', {
     .notNull()
     .references(() => users.id, { onDelete: 'cascade' }),
   content: text('content').notNull(),
+  createdAt: integer('created_at', { mode: 'timestamp_ms' })
+    .notNull()
+    .default(sql`(strftime('%s','now') * 1000)`),
+})
+
+export const followings = sqliteTable('followings', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  followerId: integer('follower_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  followingId: integer('following_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
   createdAt: integer('created_at', { mode: 'timestamp_ms' })
     .notNull()
     .default(sql`(strftime('%s','now') * 1000)`),

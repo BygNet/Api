@@ -1,4 +1,4 @@
-import { BygShop } from '@/types'
+import { BygShop } from '@bygnet/types'
 
 export const Shops: BygShop[] = [
   {

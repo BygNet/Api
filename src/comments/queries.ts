@@ -1,4 +1,4 @@
-import { BygComment } from '@/types'
+import { BygComment } from '@bygnet/types'
 import { data } from '@/data/client'
 import {
   imageComments,
@@ -17,9 +17,7 @@ type CommentRow = {
 }
 
 export abstract class CommentsQueries {
-  static async getPostComments(
-    postId: number
-  ): Promise<BygComment[]> {
+  static async getPostComments(postId: number): Promise<BygComment[]> {
     const rows: CommentRow[] = await data
       .select({
         id: postComments.id,
@@ -39,9 +37,7 @@ export abstract class CommentsQueries {
     }))
   }
 
-  static async getImageComments(
-    imageId: number
-  ): Promise<BygComment[]> {
+  static async getImageComments(imageId: number): Promise<BygComment[]> {
     const rows: CommentRow[] = await data
       .select({
         id: imageComments.id,

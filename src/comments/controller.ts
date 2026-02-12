@@ -1,34 +1,23 @@
 import { CommentsQueries } from '@/comments/queries'
-import { BygComment } from '@/types'
+import { BygComment } from '@bygnet/types'
 import { CommentBody } from '@/schemas'
 
 export abstract class CommentsController {
-  static async getPostComments(
-    postId: number
-  ): Promise<BygComment[]> {
+  static async getPostComments(postId: number): Promise<BygComment[]> {
     return await CommentsQueries.getPostComments(postId)
   }
 
-  static async getImageComments(
-    imageId: number
-  ): Promise<BygComment[]> {
+  static async getImageComments(imageId: number): Promise<BygComment[]> {
     return await CommentsQueries.getImageComments(imageId)
   }
 
-  static async commentPost(
-    body: CommentBody,
-    userId: number
-  ): Promise<number> {
+  static async commentPost(body: CommentBody, userId: number): Promise<number> {
     if (!body.content || body.content.trim() === '') {
       return 400
     }
 
     try {
-      await CommentsQueries.addPostComment(
-        body.id,
-        userId,
-        body.content
-      )
+      await CommentsQueries.addPostComment(body.id, userId, body.content)
       return 200
     } catch (e) {
       console.error(e)
@@ -45,11 +34,7 @@ export abstract class CommentsController {
     }
 
     try {
-      await CommentsQueries.addImageComment(
-        body.id,
-        userId,
-        body.content
-      )
+      await CommentsQueries.addImageComment(body.id, userId, body.content)
       return 200
     } catch (e) {
       console.error(e)

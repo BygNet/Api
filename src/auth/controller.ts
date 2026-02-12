@@ -4,8 +4,7 @@ import { eq, sql } from 'drizzle-orm'
 import argon2 from 'argon2'
 import jwt from 'jsonwebtoken'
 
-const JWT_SECRET: string =
-  process.env.JWT_SECRET ?? 'dev-secret'
+const JWT_SECRET: string = process.env.JWT_SECRET ?? 'dev-secret'
 const SESSION_TTL_MS: number = 1000 * 60 * 60 * 24 * 30 // 30 days
 
 type SignupBody = {
@@ -25,9 +24,7 @@ interface PublicUser {
   username: string
 }
 
-async function issueSession(
-  userId: number
-): Promise<string> {
+async function issueSession(userId: number): Promise<string> {
   const sessionId = crypto.randomUUID()
   const expiresAt = new Date(Date.now() + SESSION_TTL_MS)
 
@@ -85,9 +82,7 @@ export class AuthController {
 
     // Insert user - can cause a 409 if email or username is duplicate
     try {
-      await data
-        .insert(users)
-        .values({ email, username, passHash })
+      await data.insert(users).values({ email, username, passHash })
     } catch {
       set.status = 409
       return
@@ -130,10 +125,7 @@ export class AuthController {
       return
     }
 
-    const valid: boolean = await argon2.verify(
-      user.passHash,
-      password
-    )
+    const valid: boolean = await argon2.verify(user.passHash, password)
     if (!valid) {
       set.status = 401
       return
@@ -147,10 +139,7 @@ export class AuthController {
     }
   }
 
-  static async logout(
-    request: Request,
-    set: any
-  ): Promise<void> {
+  static async logout(request: Request, set: any): Promise<void> {
     const auth = request.headers.get('authorization')
     if (!auth) {
       set.status = 204
@@ -161,9 +150,7 @@ export class AuthController {
       const token: string = auth.replace('Bearer ', '')
       const payload = jwt.verify(token, JWT_SECRET) as any
 
-      await data
-        .delete(sessions)
-        .where(eq(sessions.id, payload.sid))
+      await data.delete(sessions).where(eq(sessions.id, payload.sid))
     } catch {
       // ignore
     }
@@ -172,10 +159,7 @@ export class AuthController {
     return
   }
 
-  static async me(
-    request: Request,
-    set: any
-  ): Promise<PublicUser | void> {
+  static async me(request: Request, set: any): Promise<PublicUser | void> {
     const auth = request.headers.get('authorization')
     if (!auth) {
       set.status = 401
@@ -190,10 +174,7 @@ export class AuthController {
         where: eq(sessions.id, payload.sid),
       })
 
-      if (
-        !session ||
-        session.expiresAt.getTime() < Date.now()
-      ) {
+      if (!session || session.expiresAt.getTime() < Date.now()) {
         set.status = 401
         return
       }

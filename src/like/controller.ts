@@ -5,8 +5,7 @@ export abstract class LikeController {
   static async likePost(id: number): Promise<number> {
     console.info(`Liking post ${id}`)
 
-    const post: BygPost | null =
-      await LikeQueries.getPost(id)
+    const post: BygPost | null = await LikeQueries.getPost(id)
 
     if (post) {
       await LikeQueries.likePost(id)
