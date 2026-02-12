@@ -1,0 +1,32 @@
+type: http_request
+model: http_request
+id: rq_J95gpeAyHx
+createdAt: 2026-02-12T10:49:15.297586
+updatedAt: 2026-02-12T10:51:50.660275
+workspaceId: wk_4d6NvbCu5c
+folderId: fl_soG9L3BZpr
+authentication:
+  token: ${[ testToken ]}
+authenticationType: bearer
+body:
+  form:
+  - enabled: true
+    id: V2a5btXvup
+    name: bio
+    value: This is epic
+  - enabled: true
+    id: TKy0Wikqtt
+    name: ''
+    value: ''
+bodyType: multipart/form-data
+description: ''
+headers:
+- enabled: true
+  name: Content-Type
+  value: multipart/form-data
+  id: 6bGSxebNEM
+method: POST
+name: /update-profile
+sortPriority: 2000.0
+url: ${[ baseUrl ]}/update-profile
+urlParameters: []

@@ -1,0 +1,19 @@
+type: http_request
+model: http_request
+id: rq_2KJhwqmxYd
+createdAt: 2026-02-12T10:50:57.702321
+updatedAt: 2026-02-12T10:51:50.660900
+workspaceId: wk_4d6NvbCu5c
+folderId: fl_soG9L3BZpr
+authentication:
+  token: ${[ testToken ]}
+authenticationType: bearer
+body: {}
+bodyType: null
+description: ''
+headers: []
+method: POST
+name: /follow-user
+sortPriority: 3000.0
+url: ${[ baseUrl ]}/follow-user/6
+urlParameters: []

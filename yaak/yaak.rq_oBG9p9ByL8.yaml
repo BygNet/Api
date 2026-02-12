@@ -1,0 +1,19 @@
+type: http_request
+model: http_request
+id: rq_oBG9p9ByL8
+createdAt: 2026-02-12T10:48:39.563127
+updatedAt: 2026-02-12T10:51:50.659615
+workspaceId: wk_4d6NvbCu5c
+folderId: fl_soG9L3BZpr
+authentication:
+  token: ${[ testToken ]}
+authenticationType: bearer
+body: {}
+bodyType: null
+description: ''
+headers: []
+method: GET
+name: /profile-me
+sortPriority: 1000.0
+url: ${[ baseUrl ]}/profile-me
+urlParameters: []

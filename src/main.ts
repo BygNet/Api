@@ -16,6 +16,7 @@ import { cors } from '@elysiajs/cors'
 import { ShareController } from '@/share/controller'
 import { AuthController } from '@/auth/controller'
 import { CommentsController } from '@/comments/controller'
+import { ProfileController } from '@/profile/controller'
 import jwt from 'jsonwebtoken'
 import { data } from '@/data/client'
 import { sessions } from '@/data/tables'
@@ -85,6 +86,8 @@ const writePathPrefixes: string[] = [
   '/share-post',
   '/comment-post',
   '/comment-image',
+  '/follow-user',
+  '/update-profile',
 ]
 
 const JWT_SECRET = process.env.JWT_SECRET ?? 'dev-secret'
@@ -596,6 +599,114 @@ BygApi.use(html())
       detail: {
         tags: ['Interact'],
         description: 'Add a comment to an image',
+      },
+    }
+  )
+  // Profile
+  .get(
+    '/profile/:username',
+    async ({ params, userId }) => {
+      return await ProfileController.getProfileByUsername(
+        params.username,
+        userId ?? undefined
+      )
+    },
+    {
+      response: {
+        200: t.Ref('Any'),
+        404: t.Ref('Empty'),
+      },
+      detail: {
+        tags: ['Browse'],
+        description: 'Get a user profile by username',
+      },
+    }
+  )
+  .get(
+    '/profile-me',
+    async ({ userId, set }) => {
+      if (!userId) {
+        set.status = 401
+        return null
+      }
+      return await ProfileController.getProfile(userId)
+    },
+    {
+      response: {
+        200: t.Ref('Any'),
+        401: t.Ref('Empty'),
+        404: t.Ref('Empty'),
+      },
+      detail: {
+        tags: ['Auth'],
+        description:
+          'Get the current authenticated user profile',
+      },
+    }
+  )
+  .post(
+    '/follow-user/:id',
+    async ({ params, set, userId }): Promise<null> => {
+      if (!userId) {
+        set.status = 401
+        return null
+      }
+
+      set.status = await ProfileController.followUser(
+        userId,
+        Number(params.id)
+      )
+      return null
+    },
+    {
+      response: {
+        204: t.Ref('Empty'),
+        400: t.Ref('Empty'),
+        401: t.Ref('Empty'),
+        404: t.Ref('Empty'),
+      },
+      detail: {
+        tags: ['Interact'],
+        description: 'Follow or unfollow a user',
+      },
+    }
+  )
+  .post(
+    '/update-profile',
+    async ({ body, set, userId }): Promise<null> => {
+      if (!userId) {
+        set.status = 401
+        return null
+      }
+
+      set.status = await ProfileController.updateProfile(
+        userId,
+        body as any
+      )
+      return null
+    },
+    {
+      body: t.Object({
+        bio: t.Optional(t.Union([t.String(), t.Null()])),
+        avatarUrl: t.Optional(
+          t.Union([t.String(), t.Null()])
+        ),
+        bannerUrl: t.Optional(
+          t.Union([t.String(), t.Null()])
+        ),
+        subscriptionState: t.Optional(
+          t.Union([t.String(), t.Null()])
+        ),
+      }),
+      response: {
+        204: t.Ref('Empty'),
+        401: t.Ref('Empty'),
+        404: t.Ref('Empty'),
+        500: t.Ref('Empty'),
+      },
+      detail: {
+        tags: ['Auth'],
+        description: 'Update the current user profile',
       },
     }
   )
