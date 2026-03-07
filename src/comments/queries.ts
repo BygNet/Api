@@ -16,6 +16,10 @@ type CommentRow = {
   createdAt: Date
 }
 
+interface AddCommentResult {
+  targetUserId: number | null
+}
+
 export abstract class CommentsQueries {
   static async getPostComments(postId: number): Promise<BygComment[]> {
     const rows: CommentRow[] = await data
@@ -61,7 +65,16 @@ export abstract class CommentsQueries {
     postId: number,
     authorId: number,
     content: string
-  ): Promise<void> {
+  ): Promise<AddCommentResult> {
+    const postRows = await data
+      .select({
+        authorId: posts.authorId,
+      })
+      .from(posts)
+      .where(eq(posts.id, postId))
+      .limit(1)
+    const targetUserId = postRows[0]?.authorId ?? null
+
     await data.transaction(async (tx: typeof data) => {
       await tx.insert(postComments).values({
         postId,
@@ -76,13 +89,24 @@ export abstract class CommentsQueries {
         })
         .where(eq(posts.id, postId))
     })
+
+    return { targetUserId }
   }
 
   static async addImageComment(
     imageId: number,
     authorId: number,
     content: string
-  ): Promise<void> {
+  ): Promise<AddCommentResult> {
+    const imageRows = await data
+      .select({
+        authorId: images.authorId,
+      })
+      .from(images)
+      .where(eq(images.id, imageId))
+      .limit(1)
+    const targetUserId = imageRows[0]?.authorId ?? null
+
     await data.transaction(async (tx: typeof data) => {
       await tx.insert(imageComments).values({
         imageId,
@@ -97,5 +121,7 @@ export abstract class CommentsQueries {
         })
         .where(eq(images.id, imageId))
     })
+
+    return { targetUserId }
   }
 }

@@ -1,9 +1,10 @@
-import { definePackage } from '@a35hie/ts-pkg'
+import { BunPm, definePackage } from '@opk/ts-pkg'
 
 export default definePackage({
+  pm: BunPm,
   name: '@bygnet/api',
   description: 'Elysia-based API for Byg Platform.',
-  version: '1.2.1',
+  version: '1.3.0',
   module: 'src/main.ts',
 
   scripts: {
@@ -19,19 +20,21 @@ export default definePackage({
   },
 
   dependencies: {
-    '@a35hie/ts-pkg': '^0.3.1',
     '@elysiajs/cors': '^1.4.1',
     '@elysiajs/html': '^1.4.0',
     '@elysiajs/swagger': '^1.3.1',
+    '@opk/ts-pkg': '^0.6.1',
     '@types/jsonwebtoken': '^9.0.10',
     argon2: '^0.44.0',
     'drizzle-orm': '^0.45.1',
     elysia: 'latest',
     jsonwebtoken: '^9.0.3',
     postgres: '^3.4.8',
+    'web-push': '^3.6.7',
   },
   devDependencies: {
-    '@bygnet/types': '^1.3.0',
+    '@bygnet/types': '^1.4.0',
+    '@types/web-push': '^3.6.4',
     'bun-types': 'latest',
     'drizzle-kit': '^0.31.8',
     prettier: '^3.7.4',

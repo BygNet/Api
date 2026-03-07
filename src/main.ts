@@ -1,14 +1,17 @@
 import { Elysia, t } from 'elysia'
 import { BygImage, BygPost } from '@/types'
-import { BygShop } from '@bygnet/types'
 import { BrowseController } from '@/browse/controller'
 import { HomePage } from '@/htmlPages'
 import { html } from '@elysiajs/html'
 import { LikeController } from '@/like/controller'
-import { Shops } from '@/shops'
 import { CreateController } from '@/create/controller'
 import {
+  CommentSchema,
   CreatePostSchema,
+  PushSubscriptionBody,
+  PushSubscriptionSchema,
+  PushUnsubscribeBody,
+  PushUnsubscribeSchema,
   UploadImageSchema,
 } from '@/schemas'
 import { isProd } from '@/data/client'
@@ -17,13 +20,14 @@ import { ShareController } from '@/share/controller'
 import { AuthController } from '@/auth/controller'
 import { CommentsController } from '@/comments/controller'
 import { ProfileController } from '@/profile/controller'
+import { NotificationsController } from '@/notifications/controller'
+import { PushService } from '@/push/service'
 import jwt from 'jsonwebtoken'
 import { data } from '@/data/client'
 import { sessions } from '@/data/tables'
 import { eq } from 'drizzle-orm'
 import { swagger } from '@elysiajs/swagger'
 import pkgInfo from '../package'
-import { CommentSchema } from '@/schemas'
 
 const UserSchema = t.Object({
   id: t.Number(),
@@ -42,6 +46,10 @@ const EmptySchema = t.Null()
 const AuthSuccessSchema = t.Object({
   token: t.String(),
   user: UserSchema,
+})
+
+const PushPublicKeySchema = t.Object({
+  publicKey: t.String(),
 })
 
 const AnySchema = t.Any()
@@ -67,6 +75,7 @@ const BygApi = new Elysia().decorate(
 BygApi.model({
   User: UserSchema,
   AuthSuccess: AuthSuccessSchema,
+  PushPublicKey: PushPublicKeySchema,
   Status: StatusSchema,
   Empty: EmptySchema,
   String: StringSchema,
@@ -88,6 +97,8 @@ const writePathPrefixes: string[] = [
   '/comment-image',
   '/follow-user',
   '/update-profile',
+  '/push/subscribe',
+  '/push/unsubscribe',
 ]
 
 const JWT_SECRET = process.env.JWT_SECRET ?? 'dev-secret'
@@ -177,6 +188,10 @@ BygApi.use(html())
           {
             name: 'Create',
             description: 'Content creation endpoints',
+          },
+          {
+            name: 'Notifications',
+            description: 'User notifications feed',
           },
         ],
         components: {
@@ -371,21 +386,6 @@ BygApi.use(html())
         tags: ['Browse'],
         description:
           'Get detailed information for a single image',
-      },
-    }
-  )
-  .get(
-    '/shops',
-    (): BygShop[] => {
-      return Shops
-    },
-    {
-      response: {
-        200: t.Ref('AnyArray'),
-      },
-      detail: {
-        tags: ['Browse'],
-        description: 'List available shops',
       },
     }
   )
@@ -599,6 +599,112 @@ BygApi.use(html())
       detail: {
         tags: ['Interact'],
         description: 'Add a comment to an image',
+      },
+    }
+  )
+  // Push
+  .get(
+    '/push/public-key',
+    () => {
+      return {
+        publicKey: PushService.getPublicKey(),
+      }
+    },
+    {
+      response: {
+        200: t.Ref('PushPublicKey'),
+      },
+      detail: {
+        tags: ['Notifications'],
+        description: 'Get web push VAPID public key',
+      },
+    }
+  )
+  .post(
+    '/push/subscribe',
+    async ({ body, userId, set }) => {
+      if (!userId) {
+        set.status = 401
+        return null
+      }
+
+      PushService.registerSubscription(
+        userId,
+        body as PushSubscriptionBody
+      )
+      return { status: 'ok' }
+    },
+    {
+      body: PushSubscriptionSchema,
+      response: {
+        200: t.Ref('Status'),
+        401: t.Ref('Empty'),
+      },
+      detail: {
+        tags: ['Notifications'],
+        description:
+          'Register a web push subscription for the authenticated user',
+      },
+    }
+  )
+  .post(
+    '/push/unsubscribe',
+    async ({ body, userId, set }) => {
+      if (!userId) {
+        set.status = 401
+        return null
+      }
+
+      PushService.unregisterSubscription(
+        userId,
+        (body as PushUnsubscribeBody).endpoint
+      )
+      return { status: 'ok' }
+    },
+    {
+      body: PushUnsubscribeSchema,
+      response: {
+        200: t.Ref('Status'),
+        401: t.Ref('Empty'),
+      },
+      detail: {
+        tags: ['Notifications'],
+        description:
+          'Remove a web push subscription for the authenticated user',
+      },
+    }
+  )
+  // Notifications
+  .get(
+    '/notifications',
+    async ({ userId, query, set }) => {
+      if (!userId) {
+        set.status = 401
+        return null
+      }
+
+      const rawLimit = Number(query.limit ?? '40')
+      const limit = Number.isFinite(rawLimit)
+        ? rawLimit
+        : 40
+
+      return await NotificationsController.getNotifications(
+        userId,
+        limit
+      )
+    },
+    {
+      query: t.Object({
+        limit: t.Optional(t.String()),
+      }),
+      response: {
+        200: t.Ref('AnyArray'),
+        401: t.Ref('Empty'),
+      },
+      detail: {
+        tags: ['Notifications'],
+        description:
+          'Get recent notifications for the authenticated user',
       },
     }
   )

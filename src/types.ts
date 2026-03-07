@@ -24,3 +24,16 @@ export type BygImage = Omit<BygImageRaw, 'authorId' | 'createdAt'> & {
   author: string
   createdDate: string
 }
+
+export type BygNotificationType = 'follow' | 'post_comment' | 'image_comment'
+
+export interface BygNotification {
+  id: string
+  type: BygNotificationType
+  actorUsername: string
+  actorAvatarUrl: string | null
+  actorSubscriptionState: string
+  text: string
+  path: string
+  createdDate: string
+}

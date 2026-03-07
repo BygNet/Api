@@ -1,4 +1,5 @@
 import { ProfileQueries } from '@/profile/queries'
+import { PushService } from '@/push/service'
 import { BygUserRaw } from '@/types'
 
 interface ProfileData {
@@ -77,7 +78,22 @@ export abstract class ProfileController {
       return 400
     }
 
-    await ProfileQueries.followUser(followerId, followingId)
+    const didFollow = await ProfileQueries.followUser(followerId, followingId)
+
+    if (didFollow) {
+      const follower = await ProfileQueries.getUserProfile(followerId)
+
+      if (follower) {
+        await PushService.sendToUser(followingId, {
+          type: 'follow',
+          title: 'New follower',
+          body: `${follower.username} followed you`,
+          path: `/u/${follower.username}`,
+          tag: `follow-${follower.id}`,
+        })
+      }
+    }
+
     return 204
   }
 
