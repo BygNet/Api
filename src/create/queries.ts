@@ -6,14 +6,26 @@ export abstract class CreateQueries {
     title: string
     content: string
     authorId: number
-  }): Promise<void> {
+  }): Promise<number> {
     try {
-      await data.insert(posts).values({
-        title: post.title,
-        content: post.content,
-        authorId: post.authorId,
-        createdAt: new Date(),
-      })
+      const result = await data
+        .insert(posts)
+        .values({
+          title: post.title,
+          content: post.content,
+          authorId: post.authorId,
+          createdAt: new Date(),
+        })
+        .returning({
+          id: posts.id,
+        })
+
+      const postId = result[0]?.id
+      if (!postId) {
+        throw new Error('Failed to resolve created post ID')
+      }
+
+      return postId
     } catch (e) {
       console.error(e)
       throw e

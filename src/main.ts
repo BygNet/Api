@@ -354,6 +354,37 @@ BygApi.use(html())
     }
   )
   .get(
+    '/user-suggestions',
+    async ({ query }) => {
+      const rawQuery = query.q?.trim() ?? ''
+      if (!rawQuery) {
+        return []
+      }
+
+      const rawLimit = Number(query.limit ?? '8')
+      const limit = Number.isFinite(rawLimit) ? rawLimit : 8
+
+      return await ProfileController.getUserSuggestions(
+        rawQuery,
+        limit
+      )
+    },
+    {
+      query: t.Object({
+        q: t.String(),
+        limit: t.Optional(t.String()),
+      }),
+      response: {
+        200: t.Ref('AnyArray'),
+      },
+      detail: {
+        tags: ['Browse'],
+        description:
+          'Suggest accounts by username prefix for @mention composer support',
+      },
+    }
+  )
+  .get(
     '/post-details/:id',
     async ({ params }): Promise<BygPost> => {
       return await BrowseController.getPostInfo(

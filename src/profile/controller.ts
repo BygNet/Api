@@ -1,6 +1,6 @@
 import { ProfileQueries } from '@/profile/queries'
 import { PushService } from '@/push/service'
-import { BygUserRaw } from '@/types'
+import { BygUserRaw, BygUserSuggestion } from '@/types'
 
 interface ProfileData {
   user: Omit<BygUserRaw, 'passHash'>
@@ -17,6 +17,16 @@ interface UpdateProfileBody {
 }
 
 export abstract class ProfileController {
+  static async getUserSuggestions(
+    query: string,
+    limit: number
+  ): Promise<BygUserSuggestion[]> {
+    return await ProfileQueries.getUserSuggestionsByPrefix(
+      query,
+      Math.max(1, Math.min(limit, 12))
+    )
+  }
+
   static async getProfile(userId: number): Promise<ProfileData | null> {
     const user = await ProfileQueries.getUserProfile(userId)
 

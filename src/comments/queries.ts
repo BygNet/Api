@@ -8,6 +8,7 @@ import {
   users,
 } from '@/data/tables'
 import { eq, sql } from 'drizzle-orm'
+import { expandMentionsToMarkdownLinks } from '@/utils/mentions'
 
 type CommentRow = {
   id: number
@@ -36,6 +37,7 @@ export abstract class CommentsQueries {
 
     return rows.map(row => ({
       ...row,
+      content: expandMentionsToMarkdownLinks(row.content),
       createdDate: row.createdAt.toISOString(),
       author: row.author ?? 'unknown',
     }))
@@ -56,6 +58,7 @@ export abstract class CommentsQueries {
 
     return rows.map(row => ({
       ...row,
+      content: expandMentionsToMarkdownLinks(row.content),
       createdDate: row.createdAt.toISOString(),
       author: row.author ?? 'unknown',
     }))

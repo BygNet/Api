@@ -2,6 +2,7 @@ import { BygImage, BygPost } from '@/types'
 import { data } from '@/data/client'
 import { images, posts, users } from '@/data/tables'
 import { eq, sql } from 'drizzle-orm'
+import { expandMentionsToMarkdownLinks } from '@/utils/mentions'
 
 type PostRow = {
   id: number
@@ -45,6 +46,7 @@ export abstract class BrowseQueries {
 
     return rows.map(row => ({
       ...row,
+      content: expandMentionsToMarkdownLinks(row.content),
       createdDate: row.createdDate.toISOString(),
       author: row.author ?? 'unknown',
     }))
@@ -69,6 +71,7 @@ export abstract class BrowseQueries {
 
     return rows.map(row => ({
       ...row,
+      content: expandMentionsToMarkdownLinks(row.content),
       createdDate: row.createdDate.toISOString(),
       author: row.author ?? 'unknown',
     }))
