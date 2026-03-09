@@ -32,3 +32,11 @@ export const PushUnsubscribeSchema = t.Object({
   endpoint: t.String(),
 })
 export type PushUnsubscribeBody = typeof PushUnsubscribeSchema.static
+
+export const MessageSendSchema = t.Object({
+  recipientId: t.Number(),
+  content: t.Optional(t.String()),
+  sharedPostId: t.Optional(t.Number()),
+  sharedImageId: t.Optional(t.Number()),
+})
+export type MessageSendBody = typeof MessageSendSchema.static

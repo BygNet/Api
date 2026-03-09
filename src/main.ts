@@ -7,7 +7,9 @@ import { LikeController } from '@/like/controller'
 import { CreateController } from '@/create/controller'
 import {
   CommentSchema,
+  MessageSendBody,
   CreatePostSchema,
+  MessageSendSchema,
   PushSubscriptionBody,
   PushSubscriptionSchema,
   PushUnsubscribeBody,
@@ -22,6 +24,8 @@ import { CommentsController } from '@/comments/controller'
 import { ProfileController } from '@/profile/controller'
 import { NotificationsController } from '@/notifications/controller'
 import { PushService } from '@/push/service'
+import { MessagesController } from '@/messages/controller'
+import { MessagesRealtimeService } from '@/messages/realtime'
 import jwt from 'jsonwebtoken'
 import { data } from '@/data/client'
 import { sessions } from '@/data/tables'
@@ -97,6 +101,7 @@ const writePathPrefixes: string[] = [
   '/comment-image',
   '/follow-user',
   '/update-profile',
+  '/messages/send',
   '/push/subscribe',
   '/push/unsubscribe',
 ]
@@ -192,6 +197,10 @@ BygApi.use(html())
           {
             name: 'Notifications',
             description: 'User notifications feed',
+          },
+          {
+            name: 'Messages',
+            description: 'Direct messaging and live events',
           },
         ],
         components: {
@@ -739,6 +748,160 @@ BygApi.use(html())
       },
     }
   )
+  // Messages
+  .get(
+    '/messages/threads',
+    async ({ userId, query, set }) => {
+      if (!userId) {
+        set.status = 401
+        return null
+      }
+
+      const rawLimit = Number(query.limit ?? '24')
+      const limit = Number.isFinite(rawLimit)
+        ? rawLimit
+        : 24
+
+      return await MessagesController.getThreads(
+        userId,
+        limit
+      )
+    },
+    {
+      query: t.Object({
+        limit: t.Optional(t.String()),
+      }),
+      response: {
+        200: t.Ref('AnyArray'),
+        401: t.Ref('Empty'),
+      },
+      detail: {
+        tags: ['Messages'],
+        description:
+          'Get recent message threads for the authenticated user',
+      },
+    }
+  )
+  .get(
+    '/messages/conversation/:username',
+    async ({ userId, params, query, set }) => {
+      if (!userId) {
+        set.status = 401
+        return null
+      }
+
+      const rawLimit = Number(query.limit ?? '120')
+      const limit = Number.isFinite(rawLimit)
+        ? rawLimit
+        : 120
+      const conversation =
+        await MessagesController.getConversation(
+          userId,
+          params.username,
+          limit
+        )
+
+      if (!conversation) {
+        set.status = 404
+        return null
+      }
+
+      return conversation
+    },
+    {
+      query: t.Object({
+        limit: t.Optional(t.String()),
+      }),
+      response: {
+        200: t.Ref('Any'),
+        401: t.Ref('Empty'),
+        404: t.Ref('Empty'),
+      },
+      detail: {
+        tags: ['Messages'],
+        description:
+          'Get conversation messages with another user by username',
+      },
+    }
+  )
+  .get(
+    '/messages/share-targets',
+    async ({ userId, query, set }) => {
+      if (!userId) {
+        set.status = 401
+        return null
+      }
+
+      const rawLimit = Number(query.limit ?? '24')
+      const limit = Number.isFinite(rawLimit)
+        ? rawLimit
+        : 24
+
+      return await MessagesController.getShareTargets(
+        userId,
+        limit
+      )
+    },
+    {
+      query: t.Object({
+        limit: t.Optional(t.String()),
+      }),
+      response: {
+        200: t.Ref('AnyArray'),
+        401: t.Ref('Empty'),
+      },
+      detail: {
+        tags: ['Messages'],
+        description:
+          'Get recently contacted and followed users for sharing',
+      },
+    }
+  )
+  .post(
+    '/messages/send',
+    async ({ body, userId, set }) => {
+      if (!userId) {
+        set.status = 401
+        return null
+      }
+
+      const message = await MessagesController.sendMessage(
+        body as MessageSendBody,
+        userId,
+        set
+      )
+      return message ?? null
+    },
+    {
+      body: MessageSendSchema,
+      response: {
+        200: t.Ref('Any'),
+        400: t.Ref('Empty'),
+        401: t.Ref('Empty'),
+        404: t.Ref('Empty'),
+        500: t.Ref('Empty'),
+      },
+      detail: {
+        tags: ['Messages'],
+        description:
+          'Send a direct message, optionally sharing a post or image',
+      },
+    }
+  )
+  .ws('/messages/live', {
+    open(ws) {
+      MessagesRealtimeService.handleOpen(ws)
+    },
+    async message(ws, message) {
+      await MessagesRealtimeService.handleMessage(
+        ws,
+        message
+      )
+    },
+    close(ws) {
+      MessagesRealtimeService.handleClose(ws)
+    },
+  })
   // Profile
   .get(
     '/profile/:username',

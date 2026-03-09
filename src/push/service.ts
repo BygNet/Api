@@ -1,5 +1,8 @@
 import webpush from 'web-push'
+import { and, eq, gt } from 'drizzle-orm'
 
+import { data } from '@/data/client'
+import { sessions } from '@/data/tables'
 import type { BygNotificationType } from '@/types'
 
 export interface PushSubscriptionData {
@@ -71,6 +74,21 @@ export abstract class PushService {
     userId: number,
     payload: PushAlertPayload
   ): Promise<void> {
+    const activeSessions = await data
+      .select({
+        id: sessions.id,
+      })
+      .from(sessions)
+      .where(
+        and(eq(sessions.userId, userId), gt(sessions.expiresAt, new Date()))
+      )
+      .limit(1)
+    const hasActiveSession = activeSessions.length > 0
+
+    if (!hasActiveSession) {
+      return
+    }
+
     const userSubscriptions = subscriptionStore.get(userId)
     if (!userSubscriptions || userSubscriptions.size < 1) {
       return

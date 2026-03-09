@@ -1,4 +1,11 @@
-import { pgTable, integer, text, uuid, timestamp } from 'drizzle-orm/pg-core'
+import {
+  pgTable,
+  integer,
+  serial,
+  text,
+  uuid,
+  timestamp,
+} from 'drizzle-orm/pg-core'
 
 export const users = pgTable('users', {
   id: integer('id').primaryKey(),
@@ -90,6 +97,26 @@ export const followings = pgTable('followings', {
   followingId: integer('following_id')
     .notNull()
     .references(() => users.id, { onDelete: 'cascade' }),
+  createdAt: timestamp('created_at', { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+})
+
+export const messages = pgTable('messages', {
+  id: serial('id').primaryKey(),
+  senderId: integer('sender_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  recipientId: integer('recipient_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  content: text('content').notNull().default(''),
+  sharedPostId: integer('shared_post_id').references(() => posts.id, {
+    onDelete: 'set null',
+  }),
+  sharedImageId: integer('shared_image_id').references(() => images.id, {
+    onDelete: 'set null',
+  }),
   createdAt: timestamp('created_at', { withTimezone: true })
     .notNull()
     .defaultNow(),

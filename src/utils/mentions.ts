@@ -17,7 +17,7 @@ export function extractMentionUsernames(content: string): string[] {
     }
   )
 
-  return [ ...found ]
+  return [...found]
 }
 
 export function expandMentionsToMarkdownLinks(content: string): string {

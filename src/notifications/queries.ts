@@ -4,6 +4,7 @@ import { data } from '@/data/client'
 import {
   followings,
   imageComments,
+  messages,
   images,
   postComments,
   posts,
@@ -69,6 +70,17 @@ type ImageCommentMentionNotificationRow = {
   createdAt: Date
 }
 
+type MessageNotificationRow = {
+  id: number
+  content: string
+  sharedPostId: number | null
+  sharedImageId: number | null
+  actorUsername: string | null
+  actorAvatarUrl: string | null
+  actorSubscriptionState: string | null
+  createdAt: Date
+}
+
 function normalizeSubscription(state: string | null): string {
   return state ?? 'free'
 }
@@ -79,16 +91,30 @@ function summarizeComment(content: string): string {
   return `${trimmed.slice(0, 80)}…`
 }
 
+function summarizeMessageContent(
+  row: Pick<
+    MessageNotificationRow,
+    'content' | 'sharedPostId' | 'sharedImageId'
+  >
+): string {
+  const trimmed = row.content.trim()
+  if (trimmed) {
+    if (trimmed.length <= 80) return trimmed
+    return `${trimmed.slice(0, 80)}…`
+  }
+
+  if (row.sharedPostId) return 'shared a post with you'
+  if (row.sharedImageId) return 'shared an image with you'
+  return 'sent you a message'
+}
+
 export abstract class NotificationsQueries {
   static async getRecentNotifications(
     userId: number,
     limit: number
   ): Promise<BygNotification[]> {
     const boundedLimit = Math.max(1, Math.min(limit, 100))
-    const mentionCandidateLimit = Math.max(
-      boundedLimit * 12,
-      120
-    )
+    const mentionCandidateLimit = Math.max(boundedLimit * 12, 120)
 
     const currentUser = await data
       .select({
@@ -98,8 +124,7 @@ export abstract class NotificationsQueries {
       .where(eq(users.id, userId))
       .limit(1)
 
-    const normalizedCurrentUsername =
-      currentUser[0]?.username?.toLowerCase()
+    const normalizedCurrentUsername = currentUser[0]?.username?.toLowerCase()
     if (!normalizedCurrentUsername) {
       return []
     }
@@ -111,6 +136,7 @@ export abstract class NotificationsQueries {
       postMentionRows,
       postCommentMentionRows,
       imageCommentMentionRows,
+      messageRows,
     ] = await Promise.all([
       data
         .select({
@@ -140,10 +166,7 @@ export abstract class NotificationsQueries {
         .leftJoin(posts, eq(postComments.postId, posts.id))
         .leftJoin(users, eq(postComments.authorId, users.id))
         .where(
-          and(
-            eq(posts.authorId, userId),
-            ne(postComments.authorId, userId)
-          )
+          and(eq(posts.authorId, userId), ne(postComments.authorId, userId))
         )
         .orderBy(sql`${postComments.id} desc`)
         .limit(boundedLimit) as Promise<PostCommentNotificationRow[]>,
@@ -162,10 +185,7 @@ export abstract class NotificationsQueries {
         .leftJoin(images, eq(imageComments.imageId, images.id))
         .leftJoin(users, eq(imageComments.authorId, users.id))
         .where(
-          and(
-            eq(images.authorId, userId),
-            ne(imageComments.authorId, userId)
-          )
+          and(eq(images.authorId, userId), ne(imageComments.authorId, userId))
         )
         .orderBy(sql`${imageComments.id} desc`)
         .limit(boundedLimit) as Promise<ImageCommentNotificationRow[]>,
@@ -183,9 +203,7 @@ export abstract class NotificationsQueries {
         .leftJoin(users, eq(posts.authorId, users.id))
         .where(ne(posts.authorId, userId))
         .orderBy(sql`${posts.id} desc`)
-        .limit(
-          mentionCandidateLimit
-        ) as Promise<PostMentionNotificationRow[]>,
+        .limit(mentionCandidateLimit) as Promise<PostMentionNotificationRow[]>,
 
       data
         .select({
@@ -201,9 +219,9 @@ export abstract class NotificationsQueries {
         .leftJoin(users, eq(postComments.authorId, users.id))
         .where(ne(postComments.authorId, userId))
         .orderBy(sql`${postComments.id} desc`)
-        .limit(
-          mentionCandidateLimit
-        ) as Promise<PostCommentMentionNotificationRow[]>,
+        .limit(mentionCandidateLimit) as Promise<
+        PostCommentMentionNotificationRow[]
+      >,
 
       data
         .select({
@@ -219,16 +237,34 @@ export abstract class NotificationsQueries {
         .leftJoin(users, eq(imageComments.authorId, users.id))
         .where(ne(imageComments.authorId, userId))
         .orderBy(sql`${imageComments.id} desc`)
-        .limit(
-          mentionCandidateLimit
-        ) as Promise<ImageCommentMentionNotificationRow[]>,
+        .limit(mentionCandidateLimit) as Promise<
+        ImageCommentMentionNotificationRow[]
+      >,
+
+      data
+        .select({
+          id: messages.id,
+          content: messages.content,
+          sharedPostId: messages.sharedPostId,
+          sharedImageId: messages.sharedImageId,
+          actorUsername: users.username,
+          actorAvatarUrl: users.avatarUrl,
+          actorSubscriptionState: users.subscriptionState,
+          createdAt: messages.createdAt,
+        })
+        .from(messages)
+        .leftJoin(users, eq(messages.senderId, users.id))
+        .where(
+          and(eq(messages.recipientId, userId), ne(messages.senderId, userId))
+        )
+        .orderBy(sql`${messages.id} desc`)
+        .limit(boundedLimit) as Promise<MessageNotificationRow[]>,
     ])
 
     const notifications: BygNotification[] = [
       ...followRows.map(row => {
         const actorUsername = row.actorUsername ?? 'unknown'
-        const path =
-          actorUsername === 'unknown' ? '/me' : `/u/${actorUsername}`
+        const path = actorUsername === 'unknown' ? '/me' : `/u/${actorUsername}`
 
         return {
           id: `follow-${row.id}`,
@@ -255,9 +291,7 @@ export abstract class NotificationsQueries {
           actorSubscriptionState: normalizeSubscription(
             row.actorSubscriptionState
           ),
-          text: `${actorUsername} commented: ${summarizeComment(
-            row.content
-          )}`,
+          text: `${actorUsername} commented: ${summarizeComment(row.content)}`,
           path: `/details/${row.postId}`,
           createdDate: row.createdAt.toISOString(),
         }
@@ -274,9 +308,7 @@ export abstract class NotificationsQueries {
           actorSubscriptionState: normalizeSubscription(
             row.actorSubscriptionState
           ),
-          text: `${actorUsername} commented: ${summarizeComment(
-            row.content
-          )}`,
+          text: `${actorUsername} commented: ${summarizeComment(row.content)}`,
           path: `/image/${row.imageId}`,
           createdDate: row.createdAt.toISOString(),
         }
@@ -350,15 +382,31 @@ export abstract class NotificationsQueries {
             createdDate: row.createdAt.toISOString(),
           }
         }),
+
+      ...messageRows.map(row => {
+        const actorUsername = row.actorUsername ?? 'unknown'
+        const encodedActor = encodeURIComponent(actorUsername)
+
+        return {
+          id: `message-${row.id}`,
+          type: 'message' as const,
+          actorUsername,
+          actorAvatarUrl: row.actorAvatarUrl,
+          actorSubscriptionState: normalizeSubscription(
+            row.actorSubscriptionState
+          ),
+          text: `${actorUsername} ${summarizeMessageContent(row)}`,
+          path: `/messages?with=${encodedActor}`,
+          createdDate: row.createdAt.toISOString(),
+        }
+      }),
     ]
 
     return notifications
       .sort(
         (a, b) =>
-          new Date(b.createdDate).getTime() -
-          new Date(a.createdDate).getTime()
+          new Date(b.createdDate).getTime() - new Date(a.createdDate).getTime()
       )
       .slice(0, boundedLimit)
   }
 }
-

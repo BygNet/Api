@@ -1,7 +1,7 @@
-import {data} from '@/data/client'
-import {and, eq, sql} from 'drizzle-orm'
-import {followings, users} from '@/data/tables'
-import {BygUserRaw, BygUserSuggestion} from '@/types'
+import { data } from '@/data/client'
+import { and, eq, sql } from 'drizzle-orm'
+import { followings, users } from '@/data/tables'
+import { BygUserRaw, BygUserSuggestion } from '@/types'
 
 interface MentionTargetUser {
   id: number
@@ -36,9 +36,7 @@ export abstract class ProfileQueries {
   ): Promise<MentionTargetUser[]> {
     const normalizedUsernames = [
       ...new Set(
-        usernames
-          .map(username => username.trim().toLowerCase())
-          .filter(Boolean)
+        usernames.map(username => username.trim().toLowerCase()).filter(Boolean)
       ),
     ]
 

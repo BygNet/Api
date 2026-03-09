@@ -95,3 +95,23 @@ export const followings = sqliteTable('followings', {
     .notNull()
     .default(sql`(strftime('%s','now') * 1000)`),
 })
+
+export const messages = sqliteTable('messages', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  senderId: integer('sender_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  recipientId: integer('recipient_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  content: text('content').notNull().default(''),
+  sharedPostId: integer('shared_post_id').references(() => posts.id, {
+    onDelete: 'set null',
+  }),
+  sharedImageId: integer('shared_image_id').references(() => images.id, {
+    onDelete: 'set null',
+  }),
+  createdAt: integer('created_at', { mode: 'timestamp_ms' })
+    .notNull()
+    .default(sql`(strftime('%s','now') * 1000)`),
+})

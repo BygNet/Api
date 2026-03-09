@@ -15,4 +15,5 @@ export const {
   postComments,
   imageComments,
   followings,
+  messages,
 } = tables
