@@ -38,6 +38,50 @@ function sendSocketEvent(socket: RealtimeSocket, payload: unknown): void {
   socket.send(JSON.stringify(payload))
 }
 
+function normalizeSocketIdentity(socket: RealtimeSocket): RealtimeSocket {
+  const candidate = (socket as { raw?: unknown }).raw
+  if (!candidate || typeof candidate !== 'object') {
+    return socket
+  }
+
+  if (
+    typeof (candidate as RealtimeSocket).send === 'function' &&
+    typeof (candidate as RealtimeSocket).close === 'function'
+  ) {
+    return candidate as RealtimeSocket
+  }
+
+  return socket
+}
+
+function normalizeUserId(input: unknown): number | null {
+  if (typeof input === 'number' && Number.isFinite(input)) {
+    return Math.trunc(input)
+  }
+
+  if (typeof input === 'string') {
+    const normalized = input.trim()
+    if (!normalized) return null
+
+    const parsed = Number(normalized)
+    if (Number.isFinite(parsed)) {
+      return Math.trunc(parsed)
+    }
+  }
+
+  return null
+}
+
+function normalizeTypingFlag(input: unknown): boolean | null {
+  if (typeof input === 'boolean') {
+    return input
+  }
+
+  if (input === 'true') return true
+  if (input === 'false') return false
+  return null
+}
+
 function parseRealtimeEvent(rawMessage: unknown): ClientRealtimeEvent | null {
   let normalized: unknown = rawMessage
 
@@ -61,15 +105,17 @@ function parseRealtimeEvent(rawMessage: unknown): ClientRealtimeEvent | null {
     }
   }
 
+  const normalizedToUserId = normalizeUserId(payload.toUserId)
+  const normalizedTypingFlag = normalizeTypingFlag(payload.isTyping)
   if (
     payload.type === 'typing' &&
-    typeof payload.toUserId === 'number' &&
-    typeof payload.isTyping === 'boolean'
+    normalizedToUserId !== null &&
+    normalizedTypingFlag !== null
   ) {
     return {
       type: 'typing',
-      toUserId: payload.toUserId,
-      isTyping: payload.isTyping,
+      toUserId: normalizedToUserId,
+      isTyping: normalizedTypingFlag,
     }
   }
 
@@ -117,7 +163,8 @@ async function resolveSocketAuth(token: string): Promise<SocketMeta | null> {
 
 export abstract class MessagesRealtimeService {
   static handleOpen(socket: RealtimeSocket): void {
-    sendSocketEvent(socket, {
+    const socketIdentity = normalizeSocketIdentity(socket)
+    sendSocketEvent(socketIdentity, {
       type: 'auth:required',
     })
   }
@@ -126,9 +173,10 @@ export abstract class MessagesRealtimeService {
     socket: RealtimeSocket,
     rawMessage: unknown
   ): Promise<void> {
+    const socketIdentity = normalizeSocketIdentity(socket)
     const event = parseRealtimeEvent(rawMessage)
     if (!event) {
-      sendSocketEvent(socket, {
+      sendSocketEvent(socketIdentity, {
         type: 'error',
         reason: 'invalid_payload',
       })
@@ -138,15 +186,15 @@ export abstract class MessagesRealtimeService {
     if (event.type === 'auth') {
       const resolved = await resolveSocketAuth(event.token)
       if (!resolved) {
-        sendSocketEvent(socket, {
+        sendSocketEvent(socketIdentity, {
           type: 'auth:error',
         })
-        socket.close()
+        socketIdentity.close()
         return
       }
 
-      this.registerSocket(socket, resolved)
-      sendSocketEvent(socket, {
+      this.registerSocket(socketIdentity, resolved)
+      sendSocketEvent(socketIdentity, {
         type: 'auth:ok',
         userId: resolved.userId,
         username: resolved.username,
@@ -154,9 +202,9 @@ export abstract class MessagesRealtimeService {
       return
     }
 
-    const sender = socketMeta.get(socket)
+    const sender = socketMeta.get(socketIdentity)
     if (!sender) {
-      sendSocketEvent(socket, {
+      sendSocketEvent(socketIdentity, {
         type: 'auth:error',
       })
       return
@@ -175,7 +223,7 @@ export abstract class MessagesRealtimeService {
   }
 
   static handleClose(socket: RealtimeSocket): void {
-    this.unregisterSocket(socket)
+    this.unregisterSocket(normalizeSocketIdentity(socket))
   }
 
   static broadcastMessage(message: BygMessage): void {

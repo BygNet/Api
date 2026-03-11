@@ -4,7 +4,7 @@ export default definePackage({
   pm: BunPm,
   name: '@bygnet/api',
   description: 'Elysia-based API for Byg Platform.',
-  version: '1.5.0',
+  version: '1.5.1',
   module: 'src/main.ts',
 
   scripts: {
