@@ -1,20 +1,20 @@
 const styles: string = `
 <style>
-  @import url("https://fonts.googleapis.com/css2?family=Montserrat+Alternates:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap");
+  @import url("https://fonts.googleapis.com/css2?family=Unbounded:wght@200..900&display=swap");
   
   body {
-    margin: 0;
-    padding: 1rem;
-    background: black;
-    color: lavender;
+    ;margin: 0
+    ;padding: 1rem
+    ;background: black
+    ;color: #fae6f7
   }
   
   * {
-    font-family: "Montserrat Alternates", sans-serif;
+    ;font-family: "Unbounded", sans-serif
   }
   
   a {
-    color: deepskyblue;
+    ;color: #ff00dd
   }
 </style>
 `
@@ -22,15 +22,20 @@ const styles: string = `
 export const HomePage: string = `
 <html lang="en">
   <head>
-    <title>Byg API</title>
+    <title>Byg API Home</title>
+    <link rel="icon" href="https://byg.a35.dev/favicon.ico" />
+    
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     ${styles}
   </head>
   <body>
     <h1>Byg API home.</h1>
-    <a href="https://byg.a35.dev">Byg App for Web.</a>
-    <a href="/swagger">Byg API Swagger.</a>
+    
+    <ul>
+      <li><a href="https://byg.a35.dev">Byg App for Web.</a></li>
+      <li><a href="/swagger">Byg API Swagger.</a></li>
+    </ul>
   </body>
 </html>
 `
