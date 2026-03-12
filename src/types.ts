@@ -53,6 +53,39 @@ export interface BygNotification {
   createdDate: string
 }
 
+export type BygSearchCategory =
+  | 'web'
+  | 'images'
+  | 'videos'
+  | 'news'
+  | 'music'
+  | 'files'
+  | 'science'
+  | 'social'
+
+export interface BygSearchResult {
+  title: string
+  url: string
+  snippet: string
+  engine: string | null
+  engines: string[]
+  category: string | null
+  thumbnailUrl: string | null
+  publishedDate: string | null
+  score: number | null
+}
+
+export interface BygSearchResponse {
+  query: string
+  category: BygSearchCategory
+  page: number
+  totalResults: number | null
+  tookMs: number
+  suggestions: string[]
+  answers: string[]
+  results: BygSearchResult[]
+}
+
 export interface BygMessageSharedPost {
   id: number
   title: string
