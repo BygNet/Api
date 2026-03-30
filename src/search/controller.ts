@@ -76,6 +76,12 @@ function sanitizeStringList(input: unknown): string[] {
     .filter((item): item is string => !!item)
 }
 
+function parseOptionalNumber(value: unknown): number | null {
+  if (value === null || value === undefined) return null
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed : null
+}
+
 function sanitizeResult(raw: SearxSearchResult): BygSearchResult | null {
   const url = sanitizeString(raw.url)
   if (!url) return null
@@ -217,9 +223,12 @@ export abstract class SearchController {
 
       const payload = (await res.json()) as SearxSearchResponse
       const results = normalizeResults(payload.results)
-      const totalResults = Number.isFinite(Number(payload.number_of_results))
-        ? Number(payload.number_of_results)
-        : null
+      const parsedTotalResults = parseOptionalNumber(payload.number_of_results)
+      const totalResults =
+        (parsedTotalResults === null || parsedTotalResults <= 0) &&
+        results.length > 0
+          ? results.length
+          : parsedTotalResults
 
       return {
         query: sanitizeString(payload.query) ?? normalizedQuery,

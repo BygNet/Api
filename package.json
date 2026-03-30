@@ -1,7 +1,8 @@
 {
+  "alert": "THIS IS A GENERATED FILE. DO NOT EDIT DIRECTLY. Instead, edit package.ts and run 'ts-pkg' to regenerate.",
   "name": "@bygnet/api",
-  "version": "1.6.0",
   "description": "Elysia-based API for Byg Platform.",
+  "version": "1.6.0",
   "module": "src/main.ts",
   "scripts": {
     "dev": "bun run --watch src/main.ts",
@@ -26,7 +27,7 @@
     "web-push": "^3.6.7"
   },
   "devDependencies": {
-    "@bygnet/types": "^1.4.0",
+    "@bygnet/types": "^1.5.0",
     "@types/web-push": "^3.6.4",
     "bun-types": "latest",
     "drizzle-kit": "^0.31.8",

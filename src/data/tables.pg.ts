@@ -19,6 +19,9 @@ export const users = pgTable('users', {
   avatarUrl: text('avatar_url'),
   bannerUrl: text('banner_url'),
   subscriptionState: text('subscription_state'),
+  verification: text('verification', {
+    enum: ['notable', 'organization', 'government', 'identity'],
+  }),
 })
 
 export const sessions = pgTable('sessions', {

@@ -33,7 +33,7 @@ export default definePackage({
     'web-push': '^3.6.7',
   },
   devDependencies: {
-    '@bygnet/types': '^1.4.0',
+    '@bygnet/types': '^1.5.0',
     '@types/web-push': '^3.6.4',
     'bun-types': 'latest',
     'drizzle-kit': '^0.31.8',

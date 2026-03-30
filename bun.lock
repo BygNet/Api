@@ -18,7 +18,7 @@
         "web-push": "^3.6.7",
       },
       "devDependencies": {
-        "@bygnet/types": "^1.4.0",
+        "@bygnet/types": "^1.5.0",
         "@types/web-push": "^3.6.4",
         "bun-types": "latest",
         "drizzle-kit": "^0.31.8",
@@ -29,7 +29,7 @@
   "packages": {
     "@borewit/text-codec": ["@borewit/text-codec@0.2.1", "", {}, "sha512-k7vvKPbf7J2fZ5klGRD9AeKfUvojuZIQ3BT5u7Jfv+puwXkUBUT5PVyMDfJZpy30CBDXGMgw7fguK/lpOMBvgw=="],
 
-    "@bygnet/types": ["@bygnet/types@1.4.0", "", { "dependencies": { "@opk/ts-pkg": "^0.6.1", "prettier": "^3.8.1" } }, "sha512-O/ccNfWDfqwITsJudqjFlfQAHQMca9A6W3YGZlkIoxkB3GASHphE9K4+2IygLm3H/JsOk37umIjx/4IU5yKQUw=="],
+    "@bygnet/types": ["@bygnet/types@1.5.0", "", { "dependencies": { "@opk/ts-pkg": "^0.6.1", "prettier": "^3.8.1" } }, "sha512-B7YrwCiTjticq6wE307WeUwpaZTaMXc1utZ4yj9hsBIRI8P0AHjKFhaszKsC50rwq5d/4Ka3TESJOqziwo85lg=="],
 
     "@drizzle-team/brocli": ["@drizzle-team/brocli@0.10.2", "", {}, "sha512-z33Il7l5dKjUgGULTqBsQBQwckHh5AbIuxhdsIxDDiZAzBOrZO6q9ogcWC65kU382AfynTfgNumVcNIjuIua6w=="],
 
