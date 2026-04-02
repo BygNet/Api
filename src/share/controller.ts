@@ -1,7 +1,8 @@
 import { ShareQueries } from '@/share/queries'
+import { getPrimaryWebBase } from '@/utils/webBase'
 
 function constructShareUrl(id: number, path: string): string {
-  return `${import.meta.env.BASE_URL}/${path}/${id}`
+  return `${getPrimaryWebBase()}/${path}/${id}`
 }
 
 export abstract class ShareController {

@@ -1,4 +1,5 @@
-const DEFAULT_WEB_BASE = 'https://byg.a35.dev'
+import { getPrimaryWebBase } from '@/utils/webBase'
+
 const MENTION_REGEX = /(^|[^\w\/])@(\S{1,64})/g
 
 interface TextRange {
@@ -7,8 +8,7 @@ interface TextRange {
 }
 
 function normalizedWebBase(): string {
-  const value = process.env.BASE_URL ?? DEFAULT_WEB_BASE
-  return value.replace(/\/+$/, '')
+  return getPrimaryWebBase()
 }
 
 function mergeRanges(ranges: TextRange[]): TextRange[] {
