@@ -2,7 +2,7 @@ type: http_request
 model: http_request
 id: rq_QZvjVQnXs2
 createdAt: 2026-01-17T12:18:03.770160
-updatedAt: 2026-01-17T12:18:22.422651
+updatedAt: 2026-04-02T12:31:15.086573
 workspaceId: wk_4d6NvbCu5c
 folderId: fl_dLLGm635K9
 authentication: {}
@@ -13,6 +13,6 @@ description: ''
 headers: []
 method: GET
 name: /image-details
-sortPriority: 3000.001
+sortPriority: 3000.0
 url: ${[ baseUrl ]}/image-details/1
 urlParameters: []

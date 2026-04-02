@@ -35,6 +35,10 @@ import {
   SearchController,
   SearchProxyError,
 } from '@/search/controller'
+import {
+  HeadController,
+  HeadFetchError,
+} from '@/head/controller'
 import jwt from 'jsonwebtoken'
 import { data } from '@/data/client'
 import { sessions } from '@/data/tables'
@@ -474,6 +478,40 @@ BygApi.use(html())
         tags: ['Search'],
         description:
           'Search the web, images, videos, music and more through Byg Search (SearXNG proxy)',
+      },
+    }
+  )
+  .get(
+    '/head-tags',
+    async ({ query, set }) => {
+      try {
+        return await HeadController.getHeadTags(query.url)
+      } catch (error: unknown) {
+        if (error instanceof HeadFetchError) {
+          set.status = error.statusCode
+          return null
+        }
+
+        set.status = 502
+        return null
+      }
+    },
+    {
+      query: t.Object({
+        url: t.String(),
+      }),
+      response: {
+        200: t.Ref('Any'),
+        400: t.Ref('Empty'),
+        415: t.Ref('Empty'),
+        422: t.Ref('Empty'),
+        502: t.Ref('Empty'),
+        504: t.Ref('Empty'),
+      },
+      detail: {
+        tags: ['Search'],
+        description:
+          'Fetch a webpage and return structured metadata extracted from its head tags',
       },
     }
   )

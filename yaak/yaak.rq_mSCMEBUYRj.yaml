@@ -1,0 +1,26 @@
+type: http_request
+model: http_request
+id: rq_mSCMEBUYRj
+createdAt: 2026-04-02T12:31:11.800709
+updatedAt: 2026-04-02T12:33:30.683156
+workspaceId: wk_4d6NvbCu5c
+folderId: fl_dLLGm635K9
+authentication: {}
+authenticationType: null
+body: {}
+bodyType: null
+description: ''
+headers: []
+method: GET
+name: /head-tags
+sortPriority: 4000.0
+url: ${[ baseUrl ]}/head-tags
+urlParameters:
+- enabled: true
+  name: url
+  value: https://a35hie.me
+  id: 8kK5b72TvG
+- enabled: true
+  name: ''
+  value: ''
+  id: rUfkGb4rkN

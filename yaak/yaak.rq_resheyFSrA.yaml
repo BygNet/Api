@@ -2,7 +2,7 @@ type: http_request
 model: http_request
 id: rq_resheyFSrA
 createdAt: 2026-01-13T11:40:12.771554
-updatedAt: 2026-01-17T12:18:07.957436
+updatedAt: 2026-04-02T12:31:15.085306
 workspaceId: wk_4d6NvbCu5c
 folderId: fl_dLLGm635K9
 authentication: {}
@@ -13,6 +13,6 @@ description: ''
 headers: []
 method: GET
 name: /post-details
-sortPriority: 3000.0
+sortPriority: 2000.0
 url: ${[ baseUrl ]}/post-details/1
 urlParameters: []
