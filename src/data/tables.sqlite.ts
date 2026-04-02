@@ -12,6 +12,7 @@ export const users = sqliteTable('users', {
   bio: text('bio'),
   avatarUrl: text('avatar_url'),
   bannerUrl: text('banner_url'),
+  color: text('color'),
   subscriptionState: text('subscription_state').default('plus_legacy'),
   verification: text('verification', {
     enum: ['notable', 'organization', 'government', 'identity'],

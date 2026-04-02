@@ -18,6 +18,7 @@ export const users = pgTable('users', {
   bio: text('bio'),
   avatarUrl: text('avatar_url'),
   bannerUrl: text('banner_url'),
+  color: text('color'),
   subscriptionState: text('subscription_state'),
   verification: text('verification', {
     enum: ['notable', 'organization', 'government', 'identity'],

@@ -4,7 +4,7 @@ export default definePackage({
   pm: BunPm,
   name: '@bygnet/api',
   description: 'Elysia-based API for Byg Platform.',
-  version: '1.6.0',
+  version: '1.7.0',
   module: 'src/main.ts',
 
   scripts: {
@@ -33,7 +33,7 @@ export default definePackage({
     'web-push': '^3.6.7',
   },
   devDependencies: {
-    '@bygnet/types': '^1.5.0',
+    '@bygnet/types': '^1.6.1',
     '@types/web-push': '^3.6.4',
     'bun-types': 'latest',
     'drizzle-kit': '^0.31.8',

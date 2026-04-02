@@ -1,6 +1,7 @@
 import { ProfileQueries } from '@/profile/queries'
 import { PushService } from '@/push/service'
 import { BygUserRaw, BygUserSuggestion } from '@/types'
+import { UpdateProfileBody } from '@/schemas'
 
 interface ProfileData {
   user: Omit<BygUserRaw, 'passHash'>
@@ -9,11 +10,10 @@ interface ProfileData {
   isFollowing?: boolean
 }
 
-interface UpdateProfileBody {
-  bio?: string | null
-  avatarUrl?: string | null
-  bannerUrl?: string | null
-  subscriptionState?: string | null
+function hasPaidProfileColorAccess(
+  subscriptionState: string | null | undefined
+): boolean {
+  return subscriptionState != null && subscriptionState !== 'free'
 }
 
 export abstract class ProfileController {
@@ -115,6 +115,14 @@ export abstract class ProfileController {
 
     if (!user) {
       return 404
+    }
+
+    if (
+      updates.color !== undefined &&
+      updates.color !== null &&
+      !hasPaidProfileColorAccess(user.subscriptionState)
+    ) {
+      return 403
     }
 
     const result = await ProfileQueries.updateProfile(userId, updates)

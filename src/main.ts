@@ -18,6 +18,7 @@ import {
   PushSubscriptionSchema,
   PushUnsubscribeBody,
   PushUnsubscribeSchema,
+  UpdateProfileSchema,
   UploadImageSchema,
 } from '@/schemas'
 import { isProd } from '@/data/client'
@@ -1069,20 +1070,10 @@ BygApi.use(html())
       return null
     },
     {
-      body: t.Object({
-        bio: t.Optional(t.Union([t.String(), t.Null()])),
-        avatarUrl: t.Optional(
-          t.Union([t.String(), t.Null()])
-        ),
-        bannerUrl: t.Optional(
-          t.Union([t.String(), t.Null()])
-        ),
-        subscriptionState: t.Optional(
-          t.Union([t.String(), t.Null()])
-        ),
-      }),
+      body: UpdateProfileSchema,
       response: {
         204: t.Ref('Empty'),
+        403: t.Ref('Empty'),
         401: t.Ref('Empty'),
         404: t.Ref('Empty'),
         500: t.Ref('Empty'),

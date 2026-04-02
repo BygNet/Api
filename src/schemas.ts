@@ -40,3 +40,12 @@ export const MessageSendSchema = t.Object({
   sharedImageId: t.Optional(t.Number()),
 })
 export type MessageSendBody = typeof MessageSendSchema.static
+
+export const UpdateProfileSchema = t.Object({
+  bio: t.Optional(t.Union([t.String(), t.Null()])),
+  avatarUrl: t.Optional(t.Union([t.String(), t.Null()])),
+  bannerUrl: t.Optional(t.Union([t.String(), t.Null()])),
+  subscriptionState: t.Optional(t.Union([t.String(), t.Null()])),
+  color: t.Optional(t.Union([t.String(), t.Null()])),
+})
+export type UpdateProfileBody = typeof UpdateProfileSchema.static

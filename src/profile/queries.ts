@@ -2,6 +2,7 @@ import { data } from '@/data/client'
 import { and, eq, sql } from 'drizzle-orm'
 import { followings, users } from '@/data/tables'
 import { BygUserRaw, BygUserSuggestion } from '@/types'
+import { UpdateProfileBody } from '@/schemas'
 
 interface MentionTargetUser {
   id: number
@@ -138,12 +139,7 @@ export abstract class ProfileQueries {
 
   static async updateProfile(
     userId: number,
-    updates: {
-      bio?: string | null
-      avatarUrl?: string | null
-      bannerUrl?: string | null
-      subscriptionState?: string | null
-    }
+    updates: UpdateProfileBody
   ): Promise<boolean> {
     const result = await data
       .update(users)
