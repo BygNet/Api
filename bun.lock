@@ -18,7 +18,7 @@
         "web-push": "^3.6.7",
       },
       "devDependencies": {
-        "@bygnet/types": "^1.6.1",
+        "@bygnet/types": "^1.7.0",
         "@types/web-push": "^3.6.4",
         "bun-types": "latest",
         "drizzle-kit": "^0.31.8",
@@ -29,7 +29,7 @@
   "packages": {
     "@borewit/text-codec": ["@borewit/text-codec@0.2.1", "", {}, "sha512-k7vvKPbf7J2fZ5klGRD9AeKfUvojuZIQ3BT5u7Jfv+puwXkUBUT5PVyMDfJZpy30CBDXGMgw7fguK/lpOMBvgw=="],
 
-    "@bygnet/types": ["@bygnet/types@1.6.1", "", {}, "sha512-D2rGu1hMLtp5I7BJ2byvEPHS2HEg1kVr0osB8EQFhe0c+2uF4mlCPzM9OPFvffJI4CpzeG4MBlJhVbJRu80Z0w=="],
+    "@bygnet/types": ["@bygnet/types@1.7.0", "", {}, "sha512-HKVrfyZObzCmQMqDHxc709R9O72fvfS2SvR03gt5+xcqikijiXAC4YoMi2NGQEg2+FiSQRJRqkvVbD6qbxlixg=="],
 
     "@drizzle-team/brocli": ["@drizzle-team/brocli@0.10.2", "", {}, "sha512-z33Il7l5dKjUgGULTqBsQBQwckHh5AbIuxhdsIxDDiZAzBOrZO6q9ogcWC65kU382AfynTfgNumVcNIjuIua6w=="],
 

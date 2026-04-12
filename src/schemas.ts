@@ -49,3 +49,14 @@ export const UpdateProfileSchema = t.Object({
   color: t.Optional(t.Union([t.String(), t.Null()])),
 })
 export type UpdateProfileBody = typeof UpdateProfileSchema.static
+
+export const VerifyEmailSchema = t.Object({
+  code: t.String(),
+})
+export type VerifyEmailBody = typeof VerifyEmailSchema.static
+
+export const EnableTwoFactorSchema = t.Object({
+  secret: t.String(),
+  code: t.String(),
+})
+export type EnableTwoFactorBody = typeof EnableTwoFactorSchema.static

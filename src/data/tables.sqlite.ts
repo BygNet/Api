@@ -6,6 +6,8 @@ export const users = sqliteTable('users', {
   email: text('email').notNull().unique(),
   username: text('username').notNull().unique(),
   passHash: text('pass_hash').notNull(),
+  emailVerificationCode: text('email_verification_code'),
+  twoFactorSecret: text('2fa_secret'),
   createdAt: integer('created_at', { mode: 'timestamp_ms' })
     .notNull()
     .default(sql`(strftime('%s','now') * 1000)`),

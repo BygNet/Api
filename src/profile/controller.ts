@@ -4,7 +4,10 @@ import { BygUserRaw, BygUserSuggestion } from '@/types'
 import { UpdateProfileBody } from '@/schemas'
 
 interface ProfileData {
-  user: Omit<BygUserRaw, 'passHash'>
+  user: Omit<
+    BygUserRaw,
+    'passHash' | 'emailVerificationCode' | 'twoFactorSecret'
+  >
   followerCount: number
   followingCount: number
   isFollowing?: boolean
@@ -37,7 +40,12 @@ export abstract class ProfileController {
     const followerCount = await ProfileQueries.getFollowerCount(userId)
     const followingCount = await ProfileQueries.getFollowingCount(userId)
 
-    const { passHash, ...userWithoutPass } = user
+    const {
+      passHash,
+      emailVerificationCode,
+      twoFactorSecret,
+      ...userWithoutPass
+    } = user
 
     return {
       user: userWithoutPass,
@@ -64,7 +72,12 @@ export abstract class ProfileController {
       isFollowing = await ProfileQueries.isFollowing(currentUserId, user.id)
     }
 
-    const { passHash, ...userWithoutPass } = user
+    const {
+      passHash,
+      emailVerificationCode,
+      twoFactorSecret,
+      ...userWithoutPass
+    } = user
 
     return {
       user: userWithoutPass,

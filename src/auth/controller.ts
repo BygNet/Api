@@ -3,6 +3,14 @@ import { sessions, users } from '@/data/tables'
 import { eq, sql } from 'drizzle-orm'
 import argon2 from 'argon2'
 import jwt from 'jsonwebtoken'
+import {
+  createTotpProvisioningUri,
+  generateEmailVerificationCode,
+  generateTwoFactorSecret,
+  normalizeOneTimeCode,
+  sendEmailVerificationEmail,
+  verifyTotpCode,
+} from '@/auth/security'
 
 const JWT_SECRET: string = process.env.JWT_SECRET ?? 'dev-secret'
 const SESSION_TTL_MS: number = 1000 * 60 * 60 * 24 * 30 // 30 days
@@ -16,12 +24,23 @@ type SignupBody = {
 type LoginBody = {
   email: string
   password: string
+  twoFactorCode?: string
 }
 
 interface PublicUser {
   id: number
   email: string
   username: string
+  avatarUrl: string | null
+  bannerUrl: string | null
+  bio: string | null
+  subscriptionState: string | null
+  emailVerificationCode: string | null
+  twoFactorEnabled: boolean
+}
+
+interface LoginTwoFactorChallenge {
+  requiresTwoFactor: true
 }
 
 async function issueSession(userId: number): Promise<string> {
@@ -48,11 +67,23 @@ function publicUser(user: {
   id: number
   email: string
   username: string
+  avatarUrl: string | null
+  bannerUrl: string | null
+  bio: string | null
+  subscriptionState: string | null
+  emailVerificationCode: string | null
+  twoFactorSecret: string | null
 }): PublicUser {
   return <PublicUser>{
     id: user.id,
     email: user.email,
     username: user.username,
+    avatarUrl: user.avatarUrl,
+    bannerUrl: user.bannerUrl,
+    bio: user.bio,
+    subscriptionState: user.subscriptionState ?? null,
+    emailVerificationCode: user.emailVerificationCode ?? null,
+    twoFactorEnabled: !!user.twoFactorSecret,
   }
 }
 
@@ -68,7 +99,6 @@ export class AuthController {
       return
     }
 
-    // Check if username already exists (case-insensitive)
     const existingUser = await data.query.users.findFirst({
       where: sql`lower(${users.username}) = lower(${username})`,
     })
@@ -79,10 +109,15 @@ export class AuthController {
     }
 
     const passHash: string = await argon2.hash(password)
+    const emailVerificationCode = generateEmailVerificationCode()
 
-    // Insert user - can cause a 409 if email or username is duplicate
     try {
-      await data.insert(users).values({ email, username, passHash })
+      await data.insert(users).values({
+        email,
+        username,
+        passHash,
+        emailVerificationCode,
+      })
     } catch {
       set.status = 409
       return
@@ -97,6 +132,16 @@ export class AuthController {
       return
     }
 
+    try {
+      await sendEmailVerificationEmail({
+        email: user.email,
+        username: user.username,
+        code: emailVerificationCode,
+      })
+    } catch (error: unknown) {
+      console.error('Failed to send signup verification email', error)
+    }
+
     const token: string = await issueSession(user.id)
 
     return {
@@ -108,8 +153,10 @@ export class AuthController {
   static async login(
     body: LoginBody,
     set: any
-  ): Promise<{ token: string; user: PublicUser } | void> {
-    const { email, password } = body
+  ): Promise<
+    { token: string; user: PublicUser } | LoginTwoFactorChallenge | void
+  > {
+    const { email, password, twoFactorCode } = body
 
     if (!email || !password) {
       set.status = 400
@@ -129,6 +176,19 @@ export class AuthController {
     if (!valid) {
       set.status = 401
       return
+    }
+
+    if (user.twoFactorSecret) {
+      const validTwoFactorCode =
+        typeof twoFactorCode === 'string' &&
+        verifyTotpCode(user.twoFactorSecret, twoFactorCode)
+
+      if (!validTwoFactorCode) {
+        set.status = 403
+        return {
+          requiresTwoFactor: true,
+        }
+      }
     }
 
     const token: string = await issueSession(user.id)
@@ -180,7 +240,7 @@ export class AuthController {
       }
 
       const user = await data.query.users.findFirst({
-        where: eq(users.id, payload.sub),
+        where: eq(users.id, Number(payload.sub)),
       })
 
       if (!user) {
@@ -188,15 +248,140 @@ export class AuthController {
         return
       }
 
-      return {
-        id: user.id,
-        email: user.email,
-        username: user.username,
-      }
+      return publicUser(user)
     } catch {
       set.status = 401
       return
     }
+  }
+
+  static async verifyEmail(userId: number, code: string): Promise<number> {
+    const user = await data.query.users.findFirst({
+      where: eq(users.id, userId),
+    })
+
+    if (!user) {
+      return 404
+    }
+
+    if (!user.emailVerificationCode) {
+      return 204
+    }
+
+    if (
+      normalizeOneTimeCode(code) !==
+      normalizeOneTimeCode(user.emailVerificationCode)
+    ) {
+      return 400
+    }
+
+    await data
+      .update(users)
+      .set({
+        emailVerificationCode: null,
+      })
+      .where(eq(users.id, userId))
+
+    return 204
+  }
+
+  static async resendEmailVerification(userId: number): Promise<number> {
+    const user = await data.query.users.findFirst({
+      where: eq(users.id, userId),
+    })
+
+    if (!user) {
+      return 404
+    }
+
+    if (!user.emailVerificationCode) {
+      return 204
+    }
+
+    try {
+      await sendEmailVerificationEmail({
+        email: user.email,
+        username: user.username,
+        code: user.emailVerificationCode,
+      })
+    } catch (error: unknown) {
+      console.error('Failed to resend verification email', error)
+      return 500
+    }
+
+    return 204
+  }
+
+  static async createTwoFactorSetup(userId: number): Promise<{
+    secret: string
+    manualEntryKey: string
+    otpauthUrl: string
+  } | null> {
+    const user = await data.query.users.findFirst({
+      where: eq(users.id, userId),
+    })
+
+    if (!user) {
+      return null
+    }
+
+    const { secret, manualEntryKey } = generateTwoFactorSecret()
+
+    return {
+      secret,
+      manualEntryKey,
+      otpauthUrl: createTotpProvisioningUri({
+        email: user.email,
+        username: user.username,
+        secret,
+      }),
+    }
+  }
+
+  static async enableTwoFactor(
+    userId: number,
+    secret: string,
+    code: string
+  ): Promise<PublicUser | null> {
+    const user = await data.query.users.findFirst({
+      where: eq(users.id, userId),
+    })
+
+    if (!user) {
+      return null
+    }
+
+    if (!verifyTotpCode(secret, code)) {
+      return null
+    }
+
+    await data
+      .update(users)
+      .set({
+        twoFactorSecret: secret.replace(/[\s-]+/g, '').toUpperCase(),
+      })
+      .where(eq(users.id, userId))
+
+    const updatedUser = await data.query.users.findFirst({
+      where: eq(users.id, userId),
+    })
+
+    return updatedUser ? publicUser(updatedUser) : null
+  }
+
+  static async disableTwoFactor(userId: number): Promise<PublicUser | null> {
+    await data
+      .update(users)
+      .set({
+        twoFactorSecret: null,
+      })
+      .where(eq(users.id, userId))
+
+    const updatedUser = await data.query.users.findFirst({
+      where: eq(users.id, userId),
+    })
+
+    return updatedUser ? publicUser(updatedUser) : null
   }
 
   static async hash(pass: string): Promise<string> {

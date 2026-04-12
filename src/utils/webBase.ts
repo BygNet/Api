@@ -17,7 +17,8 @@ function normalizeBaseUrl(value: string): string | null {
 }
 
 export function getConfiguredWebBases(): string[] {
-  const rawValue = process.env.BASE_URL ?? import.meta.env.BASE_URL ?? DEFAULT_WEB_BASE
+  const rawValue =
+    process.env.BASE_URL ?? import.meta.env.BASE_URL ?? DEFAULT_WEB_BASE
 
   const configuredBases = rawValue
     .split(',')

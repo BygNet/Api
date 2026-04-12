@@ -13,6 +13,7 @@ import {
   CommentSchema,
   MessageSendBody,
   CreatePostSchema,
+  EnableTwoFactorSchema,
   MessageSendSchema,
   PushSubscriptionBody,
   PushSubscriptionSchema,
@@ -20,6 +21,7 @@ import {
   PushUnsubscribeSchema,
   UpdateProfileSchema,
   UploadImageSchema,
+  VerifyEmailSchema,
 } from '@/schemas'
 import { isProd } from '@/data/client'
 import { cors } from '@elysiajs/cors'
@@ -50,6 +52,12 @@ const UserSchema = t.Object({
   id: t.Number(),
   email: t.String(),
   username: t.String(),
+  avatarUrl: t.Union([t.String(), t.Null()]),
+  bannerUrl: t.Union([t.String(), t.Null()]),
+  bio: t.Union([t.String(), t.Null()]),
+  subscriptionState: t.Union([t.String(), t.Null()]),
+  emailVerificationCode: t.Union([t.String(), t.Null()]),
+  twoFactorEnabled: t.Boolean(),
 })
 
 const StatusSchema = t.Object({
@@ -63,6 +71,16 @@ const EmptySchema = t.Null()
 const AuthSuccessSchema = t.Object({
   token: t.String(),
   user: UserSchema,
+})
+
+const TwoFactorChallengeSchema = t.Object({
+  requiresTwoFactor: t.Literal(true),
+})
+
+const TwoFactorSetupSchema = t.Object({
+  secret: t.String(),
+  manualEntryKey: t.String(),
+  otpauthUrl: t.String(),
 })
 
 const PushPublicKeySchema = t.Object({
@@ -92,6 +110,8 @@ const BygApi = new Elysia().decorate(
 BygApi.model({
   User: UserSchema,
   AuthSuccess: AuthSuccessSchema,
+  TwoFactorChallenge: TwoFactorChallengeSchema,
+  TwoFactorSetup: TwoFactorSetupSchema,
   PushPublicKey: PushPublicKeySchema,
   Status: StatusSchema,
   Empty: EmptySchema,
@@ -117,6 +137,10 @@ const writePathPrefixes: string[] = [
   '/messages/send',
   '/push/subscribe',
   '/push/unsubscribe',
+  '/auth/verify-email',
+  '/auth/resend-email-verification',
+  '/auth/2fa/enable',
+  '/auth/2fa/disable',
 ]
 
 const JWT_SECRET = process.env.JWT_SECRET ?? 'dev-secret'
@@ -274,11 +298,13 @@ BygApi.use(html())
       body: t.Object({
         email: t.String(),
         password: t.String(),
+        twoFactorCode: t.Optional(t.String()),
       }),
       response: {
         200: t.Ref('AuthSuccess'),
         400: t.Ref('Empty'),
         401: t.Ref('Empty'),
+        403: t.Ref('TwoFactorChallenge'),
       },
       detail: {
         tags: ['Auth'],
@@ -321,6 +347,160 @@ BygApi.use(html())
       detail: {
         tags: ['Auth'],
         description: 'Get the currently authenticated user',
+      },
+    }
+  )
+  .post(
+    '/auth/verify-email',
+    async ({ body, set, userId }) => {
+      if (!userId) {
+        set.status = 401
+        return null
+      }
+
+      set.status = await AuthController.verifyEmail(
+        userId,
+        body.code
+      )
+
+      return null
+    },
+    {
+      body: VerifyEmailSchema,
+      response: {
+        204: t.Ref('Empty'),
+        400: t.Ref('Empty'),
+        401: t.Ref('Empty'),
+        404: t.Ref('Empty'),
+      },
+      detail: {
+        tags: ['Auth'],
+        description:
+          'Verify the current user email address',
+      },
+    }
+  )
+  .post(
+    '/auth/resend-email-verification',
+    async ({ set, userId }) => {
+      if (!userId) {
+        set.status = 401
+        return null
+      }
+
+      set.status =
+        await AuthController.resendEmailVerification(userId)
+
+      return null
+    },
+    {
+      response: {
+        204: t.Ref('Empty'),
+        401: t.Ref('Empty'),
+        404: t.Ref('Empty'),
+        500: t.Ref('Empty'),
+      },
+      detail: {
+        tags: ['Auth'],
+        description:
+          'Resend the current user email verification code',
+      },
+    }
+  )
+  .get(
+    '/auth/2fa/setup',
+    async ({ set, userId }) => {
+      if (!userId) {
+        set.status = 401
+        return null
+      }
+
+      const result =
+        await AuthController.createTwoFactorSetup(userId)
+
+      if (!result) {
+        set.status = 404
+        return null
+      }
+
+      return result
+    },
+    {
+      response: {
+        200: t.Ref('TwoFactorSetup'),
+        401: t.Ref('Empty'),
+        404: t.Ref('Empty'),
+      },
+      detail: {
+        tags: ['Auth'],
+        description:
+          'Generate a new authenticator app secret for the current user',
+      },
+    }
+  )
+  .post(
+    '/auth/2fa/enable',
+    async ({ body, set, userId }) => {
+      if (!userId) {
+        set.status = 401
+        return null
+      }
+
+      const result = await AuthController.enableTwoFactor(
+        userId,
+        body.secret,
+        body.code
+      )
+
+      if (!result) {
+        set.status = 400
+        return null
+      }
+
+      return result
+    },
+    {
+      body: EnableTwoFactorSchema,
+      response: {
+        200: t.Ref('User'),
+        400: t.Ref('Empty'),
+        401: t.Ref('Empty'),
+      },
+      detail: {
+        tags: ['Auth'],
+        description:
+          'Enable authenticator app 2FA for the current user',
+      },
+    }
+  )
+  .post(
+    '/auth/2fa/disable',
+    async ({ set, userId }) => {
+      if (!userId) {
+        set.status = 401
+        return null
+      }
+
+      const result =
+        await AuthController.disableTwoFactor(userId)
+
+      if (!result) {
+        set.status = 404
+        return null
+      }
+
+      return result
+    },
+    {
+      response: {
+        200: t.Ref('User'),
+        401: t.Ref('Empty'),
+        404: t.Ref('Empty'),
+      },
+      detail: {
+        tags: ['Auth'],
+        description:
+          'Disable authenticator app 2FA for the current user',
       },
     }
   )

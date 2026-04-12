@@ -15,6 +15,7 @@
 # production
 /build
 data.db
+.env
 
 # misc
 .DS_Store

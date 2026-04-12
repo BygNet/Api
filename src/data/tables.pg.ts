@@ -12,6 +12,8 @@ export const users = pgTable('users', {
   email: text('email').notNull().unique(),
   username: text('username').notNull().unique(),
   passHash: text('pass_hash').notNull(),
+  emailVerificationCode: text('email_verification_code'),
+  twoFactorSecret: text('2fa_secret'),
   createdAt: timestamp('created_at', { withTimezone: true })
     .notNull()
     .defaultNow(),
