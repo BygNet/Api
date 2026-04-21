@@ -60,3 +60,8 @@ export const EnableTwoFactorSchema = t.Object({
   code: t.String(),
 })
 export type EnableTwoFactorBody = typeof EnableTwoFactorSchema.static
+
+export const ShortLinkCreateSchema = t.Object({
+  url: t.String(),
+})
+export type ShortLinkCreateBody = typeof ShortLinkCreateSchema.static

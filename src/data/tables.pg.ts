@@ -127,3 +127,11 @@ export const messages = pgTable('messages', {
     .notNull()
     .defaultNow(),
 })
+
+export const shortLinks = pgTable('short_links', {
+  slug: text('slug').primaryKey(),
+  destinationUrl: text('destination_url').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+})

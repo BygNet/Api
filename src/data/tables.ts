@@ -16,4 +16,5 @@ export const {
   imageComments,
   followings,
   messages,
+  shortLinks,
 } = tables

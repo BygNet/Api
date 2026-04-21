@@ -121,3 +121,11 @@ export const messages = sqliteTable('messages', {
     .notNull()
     .default(sql`(strftime('%s','now') * 1000)`),
 })
+
+export const shortLinks = sqliteTable('short_links', {
+  slug: text('slug').primaryKey(),
+  destinationUrl: text('destination_url').notNull(),
+  createdAt: integer('created_at', { mode: 'timestamp_ms' })
+    .notNull()
+    .default(sql`(strftime('%s','now') * 1000)`),
+})

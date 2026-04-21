@@ -19,6 +19,7 @@ import {
   PushSubscriptionSchema,
   PushUnsubscribeBody,
   PushUnsubscribeSchema,
+  ShortLinkCreateSchema,
   UpdateProfileSchema,
   UploadImageSchema,
   VerifyEmailSchema,
@@ -37,6 +38,7 @@ import {
   SearchController,
   SearchProxyError,
 } from '@/search/controller'
+import { ShortLinksController } from '@/shortLinks/controller'
 import {
   HeadController,
   HeadFetchError,
@@ -87,6 +89,11 @@ const PushPublicKeySchema = t.Object({
   publicKey: t.String(),
 })
 
+const ShortLinkSchema = t.Object({
+  slug: t.String(),
+  url: t.String(),
+})
+
 const AnySchema = t.Any()
 
 const AnyArraySchema = t.Array(t.Any())
@@ -113,6 +120,7 @@ BygApi.model({
   TwoFactorChallenge: TwoFactorChallengeSchema,
   TwoFactorSetup: TwoFactorSetupSchema,
   PushPublicKey: PushPublicKeySchema,
+  ShortLink: ShortLinkSchema,
   Status: StatusSchema,
   Empty: EmptySchema,
   String: StringSchema,
@@ -137,6 +145,7 @@ const writePathPrefixes: string[] = [
   '/messages/send',
   '/push/subscribe',
   '/push/unsubscribe',
+  '/short-links',
   '/auth/verify-email',
   '/auth/resend-email-verification',
   '/auth/2fa/enable',
@@ -196,7 +205,8 @@ BygApi.use(html())
   .use(
     cors({
       origin: [
-        'http://localhost:5173',
+        'http://localhost:2257',
+        'http://localhost:2258',
         'https://byg.a35.dev',
         'https://byg.gg',
         'capacitor://localhost',
@@ -228,6 +238,10 @@ BygApi.use(html())
             description: 'Likes & interactions',
           },
           { name: 'Share', description: 'Shareable links' },
+          {
+            name: 'ShortLinks',
+            description: 'Short link creation and lookup',
+          },
           {
             name: 'Create',
             description: 'Content creation endpoints',
@@ -798,6 +812,54 @@ BygApi.use(html())
         tags: ['Share'],
         description:
           'Generate a shareable link for an image',
+      },
+    }
+  )
+  // Short Links
+  .post(
+    '/short-links',
+    async ({ body, set }) => {
+      const result =
+        await ShortLinksController.createShortLink(
+          (body as { url: string }).url
+        )
+      if (!result) {
+        set.status = 400
+        return null
+      }
+      return result
+    },
+    {
+      body: ShortLinkCreateSchema,
+      response: {
+        200: t.Ref('ShortLink'),
+        400: t.Ref('Empty'),
+      },
+      detail: {
+        tags: ['ShortLinks'],
+        description: 'Create a new short link',
+      },
+    }
+  )
+  .get(
+    '/short-links/:slug',
+    async ({ params, set }) => {
+      const result =
+        await ShortLinksController.getShortLink(params.slug)
+      if (!result) {
+        set.status = 404
+        return null
+      }
+      return result
+    },
+    {
+      response: {
+        200: t.Ref('ShortLink'),
+        404: t.Ref('Empty'),
+      },
+      detail: {
+        tags: ['ShortLinks'],
+        description: 'Resolve a short link slug',
       },
     }
   )
