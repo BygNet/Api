@@ -205,12 +205,11 @@ BygApi.use(html())
   .use(
     cors({
       origin: [
-        'http://localhost:2257',
-        'http://localhost:2258',
-        'https://byg.a35.dev',
-        'https://byg.gg',
-        'capacitor://localhost',
-        'http://localhost',
+        'http://localhost:2257', // Byg dev
+        'http://localhost:2258', // Byg Share dev
+        'https://byg.gg', // Byg
+        'https://share.byg.gg', // Byg Share
+        'https://byg.a35.dev', // Legacy Byg
       ],
       credentials: true,
     })
