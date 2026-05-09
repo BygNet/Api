@@ -3,6 +3,7 @@ import {
   BygImage,
   BygPost,
   BygSearchResponse,
+  BygSongLinkInfo,
 } from '@/types'
 import { BrowseController } from '@/browse/controller'
 import { HomePage } from '@/htmlPages'
@@ -43,6 +44,10 @@ import {
   HeadController,
   HeadFetchError,
 } from '@/head/controller'
+import {
+  SongLinkController,
+  SongLinkFetchError,
+} from '@/songLink/controller'
 import jwt from 'jsonwebtoken'
 import { data } from '@/data/client'
 import { sessions } from '@/data/tables'
@@ -54,6 +59,9 @@ const UserSchema = t.Object({
   id: t.Number(),
   email: t.String(),
   username: t.String(),
+  displayName: t.Union([t.String(), t.Null()]),
+  pronouns: t.Union([t.String(), t.Null()]),
+  songLinkUrl: t.Union([t.String(), t.Null()]),
   avatarUrl: t.Union([t.String(), t.Null()]),
   bannerUrl: t.Union([t.String(), t.Null()]),
   bio: t.Union([t.String(), t.Null()]),
@@ -94,6 +102,24 @@ const ShortLinkSchema = t.Object({
   url: t.String(),
 })
 
+const SongLinkInfoSchema = t.Object({
+  requestedUrl: t.String(),
+  finalUrl: t.String(),
+  pageUrl: t.Union([t.String(), t.Null()]),
+  pageId: t.Union([t.String(), t.Null()]),
+  entityUniqueId: t.Union([t.String(), t.Null()]),
+  title: t.Union([t.String(), t.Null()]),
+  artistName: t.Union([t.String(), t.Null()]),
+  thumbnailUrl: t.Union([t.String(), t.Null()]),
+  links: t.Array(
+    t.Object({
+      platform: t.String(),
+      displayName: t.String(),
+      url: t.String(),
+    })
+  ),
+})
+
 const AnySchema = t.Any()
 
 const AnyArraySchema = t.Array(t.Any())
@@ -121,6 +147,7 @@ BygApi.model({
   TwoFactorSetup: TwoFactorSetupSchema,
   PushPublicKey: PushPublicKeySchema,
   ShortLink: ShortLinkSchema,
+  SongLinkInfo: SongLinkInfoSchema,
   Status: StatusSchema,
   Empty: EmptySchema,
   String: StringSchema,
@@ -706,6 +733,40 @@ BygApi.use(html())
         tags: ['Search'],
         description:
           'Fetch a webpage and return structured metadata extracted from its head tags',
+      },
+    }
+  )
+  .get(
+    '/song-link-info',
+    async ({ query, set }): Promise<BygSongLinkInfo | null> => {
+      try {
+        return await SongLinkController.getSongLinkInfo(query.url)
+      } catch (error: unknown) {
+        if (error instanceof SongLinkFetchError) {
+          set.status = error.statusCode
+          return null
+        }
+
+        set.status = 502
+        return null
+      }
+    },
+    {
+      query: t.Object({
+        url: t.String(),
+      }),
+      response: {
+        200: t.Ref('SongLinkInfo'),
+        400: t.Ref('Empty'),
+        415: t.Ref('Empty'),
+        422: t.Ref('Empty'),
+        502: t.Ref('Empty'),
+        504: t.Ref('Empty'),
+      },
+      detail: {
+        tags: ['Search'],
+        description:
+          'Fetch and extract song details and platform links from a song.link/Odesli page',
       },
     }
   )
@@ -1352,6 +1413,7 @@ BygApi.use(html())
     {
       body: UpdateProfileSchema,
       response: {
+        400: t.Ref('Empty'),
         204: t.Ref('Empty'),
         403: t.Ref('Empty'),
         401: t.Ref('Empty'),
@@ -1367,7 +1429,7 @@ BygApi.use(html())
 
 // Start
 if (!isProd) {
-  BygApi.listen(5001)
+  BygApi.listen(2255)
   console.info(
     `Elysia is running at http://${BygApi.server?.hostname}:${BygApi.server?.port}`
   )

@@ -19,6 +19,31 @@ function hasPaidProfileColorAccess(
   return subscriptionState != null && subscriptionState !== 'free'
 }
 
+function normalizeSongLinkUrl(url: string): string | null {
+  const trimmed = url.trim()
+  if (!trimmed) return null
+
+  try {
+    const parsed = new URL(trimmed)
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+      return null
+    }
+
+    if (
+      parsed.hostname !== 'song.link' &&
+      parsed.hostname !== 'www.song.link' &&
+      parsed.hostname !== 'odesli.co' &&
+      parsed.hostname !== 'www.odesli.co'
+    ) {
+      return null
+    }
+
+    return parsed.toString()
+  } catch {
+    return null
+  }
+}
+
 export abstract class ProfileController {
   static async getUserSuggestions(
     query: string,
@@ -138,7 +163,22 @@ export abstract class ProfileController {
       return 403
     }
 
-    const result = await ProfileQueries.updateProfile(userId, updates)
+    const normalizedUpdates: UpdateProfileBody = {
+      ...updates,
+    }
+
+    if (typeof updates.songLinkUrl === 'string') {
+      const normalizedUrl = normalizeSongLinkUrl(updates.songLinkUrl)
+      if (!normalizedUrl) {
+        return 400
+      }
+      normalizedUpdates.songLinkUrl = normalizedUrl
+    }
+
+    const result = await ProfileQueries.updateProfile(
+      userId,
+      normalizedUpdates
+    )
 
     return result ? 204 : 500
   }

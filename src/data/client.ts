@@ -1,23 +1,24 @@
 import * as schema from '@/data/tables'
-let data: any
+import postgres from 'postgres'
+import { drizzle as pgDrizzle } from 'drizzle-orm/postgres-js'
+
 export const isProd: boolean = process.env.NODE_ENV === 'production'
 
-if (!isProd) {
-  // SQLite (dev)
-  const Database = (await import('bun:sqlite')).default
-  const { drizzle: sqliteDrizzle } = await import('drizzle-orm/bun-sqlite')
-
-  const sqlite = new Database('data.db')
-  data = sqliteDrizzle(sqlite, { schema })
-} else {
-  // Postgres (prod)
-  const postgres = (await import('postgres')).default
-  const { drizzle: pgDrizzle } = await import('drizzle-orm/postgres-js')
-
-  const sql = postgres(process.env.DATABASE_URL!, {
-    ssl: 'require',
-  })
-  data = pgDrizzle(sql, { schema })
+const databaseUrl = process.env.DATABASE_URL
+if (!databaseUrl) {
+  throw new Error('DATABASE_URL is required')
 }
 
-export { data }
+const databaseSslMode = process.env.DATABASE_SSL?.trim().toLowerCase()
+const shouldUseSsl =
+  databaseSslMode === 'require' ||
+  databaseSslMode === 'true' ||
+  (databaseSslMode !== 'disable' &&
+    databaseSslMode !== 'false' &&
+    isProd)
+
+const sql = postgres(databaseUrl, {
+  ssl: shouldUseSsl ? 'require' : false,
+})
+
+export const data: any = pgDrizzle(sql, { schema })

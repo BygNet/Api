@@ -22,6 +22,13 @@
       "when": 1774894602527,
       "tag": "0002_add_user_profile_color",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1778329205301,
+      "tag": "0003_hot_blink",
+      "breakpoints": true
     }
   ]
 }

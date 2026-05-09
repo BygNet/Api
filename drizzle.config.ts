@@ -1,10 +1,11 @@
 import type { Config } from 'drizzle-kit'
 
 export default {
-  schema: './src/data/tables.sqlite.ts',
+  schema: './src/data/tables.pg.ts',
   out: './drizzle',
-  dialect: 'sqlite',
+  dialect: 'postgresql',
   dbCredentials: {
-    url: 'file:./data.db',
+    url: process.env.DATABASE_URL!,
   },
+  tablesFilter: ['public.*'],
 } satisfies Config

@@ -8,7 +8,7 @@ import {
 } from 'drizzle-orm/pg-core'
 
 export const users = pgTable('users', {
-  id: integer('id').primaryKey(),
+  id: serial('id').primaryKey(),
   email: text('email').notNull().unique(),
   username: text('username').notNull().unique(),
   passHash: text('pass_hash').notNull(),
@@ -17,6 +17,9 @@ export const users = pgTable('users', {
   createdAt: timestamp('created_at', { withTimezone: true })
     .notNull()
     .defaultNow(),
+  displayName: text('display_name'),
+  pronouns: text('pronouns'),
+  songLinkUrl: text('song_link_url'),
   bio: text('bio'),
   avatarUrl: text('avatar_url'),
   bannerUrl: text('banner_url'),
@@ -38,7 +41,7 @@ export const sessions = pgTable('sessions', {
 })
 
 export const posts = pgTable('posts', {
-  id: integer('id').primaryKey(),
+  id: serial('id').primaryKey(),
   title: text('title').notNull(),
   content: text('content').notNull(),
   authorId: integer('author_id')
@@ -53,7 +56,7 @@ export const posts = pgTable('posts', {
 })
 
 export const images = pgTable('images', {
-  id: integer('id').primaryKey(),
+  id: serial('id').primaryKey(),
   title: text('title').notNull(),
   imageUrl: text('image_url').notNull(),
   authorId: integer('author_id')
@@ -68,7 +71,7 @@ export const images = pgTable('images', {
 })
 
 export const postComments = pgTable('post_comments', {
-  id: integer('id').primaryKey(),
+  id: serial('id').primaryKey(),
   postId: integer('post_id')
     .notNull()
     .references(() => posts.id, { onDelete: 'cascade' }),
@@ -82,7 +85,7 @@ export const postComments = pgTable('post_comments', {
 })
 
 export const imageComments = pgTable('image_comments', {
-  id: integer('id').primaryKey(),
+  id: serial('id').primaryKey(),
   imageId: integer('image_id')
     .notNull()
     .references(() => images.id, { onDelete: 'cascade' }),
@@ -96,7 +99,7 @@ export const imageComments = pgTable('image_comments', {
 })
 
 export const followings = pgTable('followings', {
-  id: integer('id').primaryKey(),
+  id: serial('id').primaryKey(),
   followerId: integer('follower_id')
     .notNull()
     .references(() => users.id, { onDelete: 'cascade' }),

@@ -4,19 +4,20 @@ export default definePackage({
   pm: BunPm,
   name: '@bygnet/api',
   description: 'Elysia-based API for Byg Platform.',
-  version: '1.7.0',
+  version: '1.8.0',
   module: 'src/main.ts',
 
   scripts: {
     dev: 'bun run --watch src/main.ts',
     format: 'prettier --ignore-path .prettierignore --write .',
-    loadTest: 'autocannon -c 300 -p 10 -d 30 http://localhost:5001/latest-posts',
+    loadTest: 'autocannon -c 300 -p 10 -d 30 http://localhost:2255/latest-posts',
 
     // db scripts
-    'db:generate': 'bunx drizzle-kit generate && bunx drizzle-kit generate --config drizzle.config.pg.ts',
-    'db:push': 'bunx drizzle-kit push && bunx drizzle-kit push --config drizzle.config.pg.ts',
+    'db:generate': 'bunx drizzle-kit generate',
+    'db:push': 'bunx drizzle-kit push',
     'db:push:dev': 'bunx drizzle-kit push',
-    'db:push:prod': 'bunx drizzle-kit push --config drizzle.config.pg.ts',
+    'db:push:prod': 'bunx drizzle-kit push',
+    'db:migrate:sqlite': 'bun run src/data/migrateSqliteToPostgres.ts',
   },
 
   dependencies: {

@@ -1,8 +1,8 @@
 type: http_request
 model: http_request
-id: rq_mSCMEBUYRj
-createdAt: 2026-04-02T12:31:11.800709
-updatedAt: 2026-05-09T11:51:06.465114
+id: rq_xKkmyfr2Xk
+createdAt: 2026-05-09T12:56:57.908488
+updatedAt: 2026-05-09T12:57:48.851440
 workspaceId: wk_4d6NvbCu5c
 folderId: fl_dLLGm635K9
 authentication: {}
@@ -12,15 +12,15 @@ bodyType: null
 description: ''
 headers: []
 method: GET
-name: /head-tags
+name: /song-link-info
 sortPriority: 4000.0
-url: ${[ baseUrl ]}/head-tags
+url: ${[ baseUrl ]}/song-link-info
 urlParameters:
 - enabled: true
   name: url
   value: https://song.link/i/1468058171
-  id: 8kK5b72TvG
+  id: rmwQXk0stB
 - enabled: true
   name: ''
   value: ''
-  id: YfZWDXqNia
+  id: c0fjbXS0EE

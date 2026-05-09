@@ -31,6 +31,9 @@ interface PublicUser {
   id: number
   email: string
   username: string
+  displayName: string | null
+  pronouns: string | null
+  songLinkUrl: string | null
   avatarUrl: string | null
   bannerUrl: string | null
   bio: string | null
@@ -67,6 +70,9 @@ function publicUser(user: {
   id: number
   email: string
   username: string
+  displayName: string | null
+  pronouns: string | null
+  songLinkUrl: string | null
   avatarUrl: string | null
   bannerUrl: string | null
   bio: string | null
@@ -78,6 +84,9 @@ function publicUser(user: {
     id: user.id,
     email: user.email,
     username: user.username,
+    displayName: user.displayName,
+    pronouns: user.pronouns,
+    songLinkUrl: user.songLinkUrl,
     avatarUrl: user.avatarUrl,
     bannerUrl: user.bannerUrl,
     bio: user.bio,
