@@ -1,11 +1,20 @@
 import { and, eq, inArray, or, sql } from 'drizzle-orm'
 
 import { data } from '@/data/client'
-import { followings, images, messages, posts, users } from '@/data/tables'
+import {
+  followings,
+  images,
+  messageConversationMembers,
+  messageConversations,
+  messages,
+  posts,
+  users,
+} from '@/data/tables'
 import { ShareQueries } from '@/share/queries'
 import type {
   BygMessage,
   BygMessageConversation,
+  BygMessageConversationMember,
   BygMessageShareTarget,
   BygMessageSharedImage,
   BygMessageSharedPost,
@@ -13,13 +22,27 @@ import type {
 } from '@/types'
 import { expandMentionsToMarkdownLinks } from '@/utils/mentions'
 
+type ConversationType = 'direct' | 'group'
+
 type MessageRow = {
   id: number
+  conversationId: number
   senderId: number
-  recipientId: number
+  recipientId: number | null
   content: string
   sharedPostId: number | null
   sharedImageId: number | null
+  createdAt: Date
+}
+
+type ConversationRow = {
+  id: number
+  type: ConversationType
+  name: string | null
+  title: string | null
+  imageUrl: string | null
+  description: string | null
+  creatorId: number
   createdAt: Date
 }
 
@@ -34,24 +57,49 @@ export type SendMessageErrorCode =
   | 'cannot_message_self'
   | 'empty_message'
   | 'invalid_share_payload'
+  | 'invalid_conversation_target'
   | 'recipient_not_found'
+  | 'conversation_not_found'
+  | 'not_conversation_member'
   | 'post_not_found'
   | 'image_not_found'
+  | 'save_failed'
+
+export type ConversationMutationErrorCode =
+  | 'cannot_message_self'
+  | 'empty_group'
+  | 'recipient_not_found'
+  | 'conversation_not_found'
+  | 'not_conversation_member'
+  | 'not_conversation_creator'
+  | 'not_group_conversation'
   | 'save_failed'
 
 export type SendMessageResult =
   | {
       ok: true
       message: BygMessage
+      memberIds: number[]
     }
   | {
       ok: false
       code: SendMessageErrorCode
     }
 
+export type ConversationMutationResult =
+  | {
+      ok: true
+      conversation: BygMessageConversation
+    }
+  | {
+      ok: false
+      code: ConversationMutationErrorCode
+    }
+
 interface SendMessageInput {
   senderId: number
-  recipientId: number
+  conversationId?: number
+  recipientId?: number
   content?: string
   sharedPostId?: number
   sharedImageId?: number
@@ -79,6 +127,13 @@ function uniqueIds(values: number[]): number[] {
   return [...new Set(values)]
 }
 
+function normalizeNullableText(
+  value: string | null | undefined
+): string | null {
+  const normalized = value?.trim()
+  return normalized ? normalized : null
+}
+
 function previewMessage(
   content: string,
   hasSharedPost: boolean,
@@ -86,7 +141,7 @@ function previewMessage(
 ): string {
   const trimmed = content.trim()
   if (trimmed) {
-    return trimmed.length <= 80 ? trimmed : `${trimmed.slice(0, 80)}…`
+    return trimmed.length <= 80 ? trimmed : `${trimmed.slice(0, 80)}...`
   }
 
   if (hasSharedPost) return 'Shared a post'
@@ -102,10 +157,11 @@ function mapMessageRows(
 ): BygMessage[] {
   return rows.map(row => {
     const sender = usersById.get(row.senderId)
-    const recipient = usersById.get(row.recipientId)
+    const recipient = row.recipientId ? usersById.get(row.recipientId) : null
 
     return {
       id: row.id,
+      conversationId: row.conversationId,
       senderId: row.senderId,
       senderUsername: sender?.username ?? 'unknown',
       senderAvatarUrl: sender?.avatarUrl ?? null,
@@ -253,8 +309,12 @@ async function hydrateMessages(rows: MessageRow[]): Promise<BygMessage[]> {
     return []
   }
 
+  const userIds = rows.flatMap(row =>
+    row.recipientId ? [row.senderId, row.recipientId] : [row.senderId]
+  )
+
   const [usersById, sharedPosts, sharedImages] = await Promise.all([
-    getUsersByIdMap(rows.flatMap(row => [row.senderId, row.recipientId])),
+    getUsersByIdMap(userIds),
     getSharedPostsById(
       rows
         .map(row => row.sharedPostId)
@@ -270,73 +330,342 @@ async function hydrateMessages(rows: MessageRow[]): Promise<BygMessage[]> {
   return mapMessageRows(rows, usersById, sharedPosts, sharedImages)
 }
 
+async function getConversationRowsForUser(
+  userId: number
+): Promise<ConversationRow[]> {
+  return await data
+    .select({
+      id: messageConversations.id,
+      type: messageConversations.type,
+      name: messageConversations.name,
+      title: messageConversations.title,
+      imageUrl: messageConversations.imageUrl,
+      description: messageConversations.description,
+      creatorId: messageConversations.creatorId,
+      createdAt: messageConversations.createdAt,
+    })
+    .from(messageConversations)
+    .innerJoin(
+      messageConversationMembers,
+      eq(messageConversationMembers.conversationId, messageConversations.id)
+    )
+    .where(eq(messageConversationMembers.userId, userId))
+    .orderBy(sql`${messageConversations.id} desc`)
+}
+
+async function getConversationForUser(
+  conversationId: number,
+  userId: number
+): Promise<ConversationRow | null> {
+  const rows = await data
+    .select({
+      id: messageConversations.id,
+      type: messageConversations.type,
+      name: messageConversations.name,
+      title: messageConversations.title,
+      imageUrl: messageConversations.imageUrl,
+      description: messageConversations.description,
+      creatorId: messageConversations.creatorId,
+      createdAt: messageConversations.createdAt,
+    })
+    .from(messageConversations)
+    .innerJoin(
+      messageConversationMembers,
+      eq(messageConversationMembers.conversationId, messageConversations.id)
+    )
+    .where(
+      and(
+        eq(messageConversations.id, conversationId),
+        eq(messageConversationMembers.userId, userId)
+      )
+    )
+    .limit(1)
+
+  return rows[0] ?? null
+}
+
+async function getMembersByConversationIds(
+  conversationIds: number[]
+): Promise<Map<number, BygMessageConversationMember[]>> {
+  const normalizedIds = uniqueIds(conversationIds)
+  if (normalizedIds.length < 1) {
+    return new Map()
+  }
+
+  const rows = await data
+    .select({
+      conversationId: messageConversationMembers.conversationId,
+      userId: messageConversationMembers.userId,
+      username: users.username,
+      avatarUrl: users.avatarUrl,
+      subscriptionState: users.subscriptionState,
+      creatorId: messageConversations.creatorId,
+      createdAt: messageConversationMembers.createdAt,
+    })
+    .from(messageConversationMembers)
+    .innerJoin(users, eq(messageConversationMembers.userId, users.id))
+    .innerJoin(
+      messageConversations,
+      eq(messageConversationMembers.conversationId, messageConversations.id)
+    )
+    .where(inArray(messageConversationMembers.conversationId, normalizedIds))
+    .orderBy(sql`${messageConversationMembers.id} asc`)
+
+  const membersByConversation = new Map<
+    number,
+    BygMessageConversationMember[]
+  >()
+
+  for (const row of rows) {
+    const members = membersByConversation.get(row.conversationId) ?? []
+    members.push({
+      userId: row.userId,
+      username: row.username,
+      avatarUrl: row.avatarUrl,
+      subscriptionState: normalizeSubscription(row.subscriptionState),
+      isCreator: row.userId === row.creatorId,
+      joinedDate: toIso(row.createdAt),
+    })
+    membersByConversation.set(row.conversationId, members)
+  }
+
+  return membersByConversation
+}
+
+async function getMemberIds(conversationId: number): Promise<number[]> {
+  const rows = await data
+    .select({
+      userId: messageConversationMembers.userId,
+    })
+    .from(messageConversationMembers)
+    .where(eq(messageConversationMembers.conversationId, conversationId))
+
+  return rows.map((row: { userId: number }) => row.userId)
+}
+
+async function getDirectConversationId(
+  userId: number,
+  recipientId: number
+): Promise<number | null> {
+  const userConversationRows = await data
+    .select({
+      conversationId: messageConversationMembers.conversationId,
+    })
+    .from(messageConversationMembers)
+    .innerJoin(
+      messageConversations,
+      eq(messageConversationMembers.conversationId, messageConversations.id)
+    )
+    .where(
+      and(
+        eq(messageConversationMembers.userId, userId),
+        eq(messageConversations.type, 'direct')
+      )
+    )
+
+  const conversationIds = userConversationRows.map(
+    (row: { conversationId: number }) => row.conversationId
+  )
+  if (conversationIds.length < 1) return null
+
+  const memberRows = await data
+    .select({
+      conversationId: messageConversationMembers.conversationId,
+      userId: messageConversationMembers.userId,
+    })
+    .from(messageConversationMembers)
+    .where(inArray(messageConversationMembers.conversationId, conversationIds))
+
+  const membersByConversation = new Map<number, Set<number>>()
+  for (const row of memberRows) {
+    const members = membersByConversation.get(row.conversationId) ?? new Set()
+    members.add(row.userId)
+    membersByConversation.set(row.conversationId, members)
+  }
+
+  for (const [conversationId, members] of membersByConversation) {
+    if (members.size === 2 && members.has(userId) && members.has(recipientId)) {
+      return conversationId
+    }
+  }
+
+  return null
+}
+
+async function createConversationMembers(
+  conversationId: number,
+  userIds: number[],
+  invitedById: number | null
+): Promise<void> {
+  const values = uniqueIds(userIds).map(userId => ({
+    conversationId,
+    userId,
+    invitedById,
+    createdAt: new Date(),
+  }))
+
+  if (values.length < 1) return
+
+  await data
+    .insert(messageConversationMembers)
+    .values(values)
+    .onConflictDoNothing()
+}
+
+async function buildConversation(
+  conversation: ConversationRow,
+  messagesLimit: number
+): Promise<BygMessageConversation> {
+  const boundedLimit = clampLimit(messagesLimit, 1, 250, 120)
+
+  const rows: MessageRow[] = await data
+    .select({
+      id: messages.id,
+      conversationId: messages.conversationId,
+      senderId: messages.senderId,
+      recipientId: messages.recipientId,
+      content: messages.content,
+      sharedPostId: messages.sharedPostId,
+      sharedImageId: messages.sharedImageId,
+      createdAt: messages.createdAt,
+    })
+    .from(messages)
+    .where(eq(messages.conversationId, conversation.id))
+    .orderBy(sql`${messages.id} asc`)
+    .limit(boundedLimit)
+
+  const [hydratedMessages, membersByConversation] = await Promise.all([
+    hydrateMessages(rows),
+    getMembersByConversationIds([conversation.id]),
+  ])
+
+  return {
+    conversationId: conversation.id,
+    type: conversation.type,
+    name: conversation.name,
+    title: conversation.title,
+    imageUrl: conversation.imageUrl,
+    description: conversation.description,
+    creatorId: conversation.creatorId,
+    members: membersByConversation.get(conversation.id) ?? [],
+    messages: hydratedMessages,
+  }
+}
+
+async function validateSharePayload(input: {
+  sharedPostId?: number
+  sharedImageId?: number
+}): Promise<SendMessageErrorCode | null> {
+  if (input.sharedPostId && input.sharedImageId) {
+    return 'invalid_share_payload'
+  }
+
+  if (input.sharedPostId) {
+    const sharedPost = await data
+      .select({
+        id: posts.id,
+      })
+      .from(posts)
+      .where(eq(posts.id, input.sharedPostId))
+      .limit(1)
+    if (!sharedPost[0]?.id) {
+      return 'post_not_found'
+    }
+  }
+
+  if (input.sharedImageId) {
+    const sharedImage = await data
+      .select({
+        id: images.id,
+      })
+      .from(images)
+      .where(eq(images.id, input.sharedImageId))
+      .limit(1)
+    if (!sharedImage[0]?.id) {
+      return 'image_not_found'
+    }
+  }
+
+  return null
+}
+
 export abstract class MessagesQueries {
   static async getMessageThreads(
     userId: number,
     limit: number
   ): Promise<BygMessageThread[]> {
     const boundedLimit = clampLimit(limit, 1, 60, 24)
-    const candidateLimit = Math.max(boundedLimit * 14, 140)
+    const conversations = await getConversationRowsForUser(userId)
+    const conversationIds = conversations.map(conversation => conversation.id)
+    if (conversationIds.length < 1) return []
 
-    const rows: MessageRow[] = await data
-      .select({
-        id: messages.id,
-        senderId: messages.senderId,
-        recipientId: messages.recipientId,
-        content: messages.content,
-        sharedPostId: messages.sharedPostId,
-        sharedImageId: messages.sharedImageId,
-        createdAt: messages.createdAt,
-      })
-      .from(messages)
-      .where(
-        or(eq(messages.senderId, userId), eq(messages.recipientId, userId))
-      )
-      .orderBy(sql`${messages.id} desc`)
-      .limit(candidateLimit)
+    const [latestRows, membersByConversation] = await Promise.all([
+      data
+        .select({
+          id: messages.id,
+          conversationId: messages.conversationId,
+          senderId: messages.senderId,
+          recipientId: messages.recipientId,
+          content: messages.content,
+          sharedPostId: messages.sharedPostId,
+          sharedImageId: messages.sharedImageId,
+          createdAt: messages.createdAt,
+        })
+        .from(messages)
+        .where(inArray(messages.conversationId, conversationIds))
+        .orderBy(sql`${messages.id} desc`)
+        .limit(Math.max(boundedLimit * 10, 120)) as Promise<MessageRow[]>,
+      getMembersByConversationIds(conversationIds),
+    ])
 
-    if (rows.length < 1) {
-      return []
-    }
-
-    const counterpartIds = uniqueIds(
-      rows.map(row =>
-        row.senderId === userId ? row.recipientId : row.senderId
-      )
-    )
-    const usersById = await getUsersByIdMap(counterpartIds)
-
-    const threads: BygMessageThread[] = []
-    const used = new Set<number>()
-
-    for (const row of rows) {
-      const counterpartId =
-        row.senderId === userId ? row.recipientId : row.senderId
-      if (used.has(counterpartId)) continue
-
-      const counterpart = usersById.get(counterpartId)
-      if (!counterpart) continue
-
-      threads.push({
-        userId: counterpartId,
-        username: counterpart.username,
-        avatarUrl: counterpart.avatarUrl,
-        subscriptionState: counterpart.subscriptionState,
-        lastMessagePreview: previewMessage(
-          row.content,
-          row.sharedPostId !== null,
-          row.sharedImageId !== null
-        ),
-        lastMessageDate: toIso(row.createdAt),
-      })
-
-      used.add(counterpartId)
-      if (threads.length >= boundedLimit) {
-        break
+    const latestByConversation = new Map<number, MessageRow>()
+    for (const row of latestRows) {
+      if (!latestByConversation.has(row.conversationId)) {
+        latestByConversation.set(row.conversationId, row)
       }
     }
 
-    return threads
+    return conversations
+      .map(conversation => {
+        const lastMessage = latestByConversation.get(conversation.id)
+        return {
+          conversationId: conversation.id,
+          type: conversation.type,
+          name: conversation.name,
+          title: conversation.title,
+          imageUrl: conversation.imageUrl,
+          description: conversation.description,
+          creatorId: conversation.creatorId,
+          members: membersByConversation.get(conversation.id) ?? [],
+          lastMessagePreview: lastMessage
+            ? previewMessage(
+                lastMessage.content,
+                lastMessage.sharedPostId !== null,
+                lastMessage.sharedImageId !== null
+              )
+            : 'No messages yet',
+          lastMessageDate: toIso(
+            lastMessage?.createdAt ?? conversation.createdAt
+          ),
+        } satisfies BygMessageThread
+      })
+      .sort(
+        (a, b) =>
+          new Date(b.lastMessageDate).getTime() -
+          new Date(a.lastMessageDate).getTime()
+      )
+      .slice(0, boundedLimit)
+  }
+
+  static async getConversationById(
+    userId: number,
+    conversationId: number,
+    limit: number
+  ): Promise<BygMessageConversation | null> {
+    const conversation = await getConversationForUser(conversationId, userId)
+    if (!conversation) return null
+
+    return await buildConversation(conversation, limit)
   }
 
   static async getConversationByUsername(
@@ -352,47 +681,37 @@ export abstract class MessagesQueries {
     const counterpart = await data.query.users.findFirst({
       where: sql`lower(${users.username}) = lower(${normalizedUsername})`,
     })
-    if (!counterpart) {
+    if (!counterpart || counterpart.id === userId) {
       return null
     }
 
-    const boundedLimit = clampLimit(limit, 1, 250, 120)
-
-    const rows: MessageRow[] = await data
-      .select({
-        id: messages.id,
-        senderId: messages.senderId,
-        recipientId: messages.recipientId,
-        content: messages.content,
-        sharedPostId: messages.sharedPostId,
-        sharedImageId: messages.sharedImageId,
-        createdAt: messages.createdAt,
-      })
-      .from(messages)
-      .where(
-        or(
-          and(
-            eq(messages.senderId, userId),
-            eq(messages.recipientId, counterpart.id)
-          ),
-          and(
-            eq(messages.senderId, counterpart.id),
-            eq(messages.recipientId, userId)
-          )
-        )
-      )
-      .orderBy(sql`${messages.id} asc`)
-      .limit(boundedLimit)
-
-    const hydratedMessages = await hydrateMessages(rows)
-
-    return {
-      userId: counterpart.id,
-      username: counterpart.username,
-      avatarUrl: counterpart.avatarUrl,
-      subscriptionState: normalizeSubscription(counterpart.subscriptionState),
-      messages: hydratedMessages,
+    const conversationId = await getDirectConversationId(userId, counterpart.id)
+    if (!conversationId) {
+      return {
+        conversationId: 0,
+        type: 'direct',
+        name: null,
+        title: null,
+        imageUrl: null,
+        description: null,
+        creatorId: userId,
+        members: [
+          {
+            userId: counterpart.id,
+            username: counterpart.username,
+            avatarUrl: counterpart.avatarUrl,
+            subscriptionState: normalizeSubscription(
+              counterpart.subscriptionState
+            ),
+            isCreator: false,
+            joinedDate: new Date().toISOString(),
+          },
+        ],
+        messages: [],
+      }
     }
+
+    return await this.getConversationById(userId, conversationId, limit)
   }
 
   static async getShareTargets(
@@ -401,17 +720,14 @@ export abstract class MessagesQueries {
   ): Promise<BygMessageShareTarget[]> {
     const boundedLimit = clampLimit(limit, 1, 60, 24)
 
-    const [recentMessageRows, followingRows] = await Promise.all([
+    const [conversationRows, followingRows] = await Promise.all([
       data
         .select({
-          senderId: messages.senderId,
-          recipientId: messages.recipientId,
+          conversationId: messageConversationMembers.conversationId,
         })
-        .from(messages)
-        .where(
-          or(eq(messages.senderId, userId), eq(messages.recipientId, userId))
-        )
-        .orderBy(sql`${messages.id} desc`)
+        .from(messageConversationMembers)
+        .where(eq(messageConversationMembers.userId, userId))
+        .orderBy(sql`${messageConversationMembers.id} desc`)
         .limit(Math.max(boundedLimit * 16, 160)),
 
       data
@@ -424,12 +740,17 @@ export abstract class MessagesQueries {
         .limit(Math.max(boundedLimit * 4, 80)),
     ])
 
+    const conversationIds = conversationRows.map(
+      (row: { conversationId: number }) => row.conversationId
+    )
+    const membersByConversation =
+      await getMembersByConversationIds(conversationIds)
     const recentIds = uniqueIds(
-      recentMessageRows
-        .map((row: { senderId: number; recipientId: number }) =>
-          row.senderId === userId ? row.recipientId : row.senderId
-        )
-        .filter((id: number) => id !== userId)
+      conversationIds.flatMap((id: number) =>
+        (membersByConversation.get(id) ?? [])
+          .map(member => member.userId)
+          .filter(memberId => memberId !== userId)
+      )
     )
     const followingIds = uniqueIds(
       followingRows.map((row: { followingId: number }) => row.followingId)
@@ -478,20 +799,12 @@ export abstract class MessagesQueries {
     return targets
   }
 
-  static async sendMessage(
-    input: SendMessageInput
-  ): Promise<SendMessageResult> {
-    if (input.senderId === input.recipientId) {
+  static async getOrCreateDirectConversation(
+    userId: number,
+    recipientId: number
+  ): Promise<ConversationMutationResult> {
+    if (userId === recipientId) {
       return { ok: false, code: 'cannot_message_self' }
-    }
-
-    if (input.sharedPostId && input.sharedImageId) {
-      return { ok: false, code: 'invalid_share_payload' }
-    }
-
-    const normalizedContent = input.content?.trim() ?? ''
-    if (!normalizedContent && !input.sharedPostId && !input.sharedImageId) {
-      return { ok: false, code: 'empty_message' }
     }
 
     const recipient = await data
@@ -499,43 +812,342 @@ export abstract class MessagesQueries {
         id: users.id,
       })
       .from(users)
-      .where(eq(users.id, input.recipientId))
+      .where(eq(users.id, recipientId))
       .limit(1)
     if (!recipient[0]?.id) {
       return { ok: false, code: 'recipient_not_found' }
     }
 
-    if (input.sharedPostId) {
-      const sharedPost = await data
-        .select({
-          id: posts.id,
-        })
-        .from(posts)
-        .where(eq(posts.id, input.sharedPostId))
-        .limit(1)
-      if (!sharedPost[0]?.id) {
-        return { ok: false, code: 'post_not_found' }
-      }
+    const existingConversationId = await getDirectConversationId(
+      userId,
+      recipientId
+    )
+    if (existingConversationId) {
+      const existing = await this.getConversationById(
+        userId,
+        existingConversationId,
+        120
+      )
+      if (!existing) return { ok: false, code: 'save_failed' }
+      return { ok: true, conversation: existing }
     }
 
-    if (input.sharedImageId) {
-      const sharedImage = await data
-        .select({
-          id: images.id,
-        })
-        .from(images)
-        .where(eq(images.id, input.sharedImageId))
-        .limit(1)
-      if (!sharedImage[0]?.id) {
-        return { ok: false, code: 'image_not_found' }
+    const insertedRows = await data
+      .insert(messageConversations)
+      .values({
+        type: 'direct',
+        creatorId: userId,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .returning({
+        id: messageConversations.id,
+      })
+    const conversationId = insertedRows[0]?.id
+    if (!conversationId) {
+      return { ok: false, code: 'save_failed' }
+    }
+
+    await createConversationMembers(
+      conversationId,
+      [userId, recipientId],
+      userId
+    )
+
+    const conversation = await this.getConversationById(
+      userId,
+      conversationId,
+      120
+    )
+    if (!conversation) {
+      return { ok: false, code: 'save_failed' }
+    }
+
+    return { ok: true, conversation }
+  }
+
+  static async createGroupConversation(input: {
+    creatorId: number
+    memberIds: number[]
+    name?: string | null
+    title?: string | null
+    imageUrl?: string | null
+    description?: string | null
+  }): Promise<ConversationMutationResult> {
+    const memberIds = uniqueIds(
+      input.memberIds
+        .map(id => Math.trunc(id))
+        .filter(id => Number.isFinite(id) && id !== input.creatorId)
+    )
+    if (memberIds.length < 1) {
+      return { ok: false, code: 'empty_group' }
+    }
+
+    const existingUsers = await data
+      .select({
+        id: users.id,
+      })
+      .from(users)
+      .where(inArray(users.id, memberIds))
+    if (existingUsers.length !== memberIds.length) {
+      return { ok: false, code: 'recipient_not_found' }
+    }
+
+    const insertedRows = await data
+      .insert(messageConversations)
+      .values({
+        type: 'group',
+        name: normalizeNullableText(input.name),
+        title: normalizeNullableText(input.title),
+        imageUrl: normalizeNullableText(input.imageUrl),
+        description: normalizeNullableText(input.description),
+        creatorId: input.creatorId,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .returning({
+        id: messageConversations.id,
+      })
+    const conversationId = insertedRows[0]?.id
+    if (!conversationId) {
+      return { ok: false, code: 'save_failed' }
+    }
+
+    await createConversationMembers(
+      conversationId,
+      [input.creatorId, ...memberIds],
+      input.creatorId
+    )
+
+    const conversation = await this.getConversationById(
+      input.creatorId,
+      conversationId,
+      120
+    )
+    if (!conversation) {
+      return { ok: false, code: 'save_failed' }
+    }
+
+    return { ok: true, conversation }
+  }
+
+  static async inviteGroupMember(input: {
+    conversationId: number
+    actorId: number
+    userId: number
+  }): Promise<ConversationMutationResult> {
+    const conversation = await getConversationForUser(
+      input.conversationId,
+      input.actorId
+    )
+    if (!conversation) {
+      return { ok: false, code: 'conversation_not_found' }
+    }
+    if (conversation.type !== 'group') {
+      return { ok: false, code: 'not_group_conversation' }
+    }
+    if (conversation.creatorId !== input.actorId) {
+      return { ok: false, code: 'not_conversation_creator' }
+    }
+
+    const recipient = await data
+      .select({
+        id: users.id,
+      })
+      .from(users)
+      .where(eq(users.id, input.userId))
+      .limit(1)
+    if (!recipient[0]?.id) {
+      return { ok: false, code: 'recipient_not_found' }
+    }
+
+    await createConversationMembers(
+      input.conversationId,
+      [input.userId],
+      input.actorId
+    )
+
+    const updatedConversation = await this.getConversationById(
+      input.actorId,
+      input.conversationId,
+      120
+    )
+    if (!updatedConversation) {
+      return { ok: false, code: 'save_failed' }
+    }
+
+    return { ok: true, conversation: updatedConversation }
+  }
+
+  static async updateGroupInfo(input: {
+    conversationId: number
+    actorId: number
+    name?: string | null
+    title?: string | null
+    imageUrl?: string | null
+    description?: string | null
+  }): Promise<ConversationMutationResult> {
+    const conversation = await getConversationForUser(
+      input.conversationId,
+      input.actorId
+    )
+    if (!conversation) {
+      return { ok: false, code: 'conversation_not_found' }
+    }
+    if (conversation.type !== 'group') {
+      return { ok: false, code: 'not_group_conversation' }
+    }
+    if (conversation.creatorId !== input.actorId) {
+      return { ok: false, code: 'not_conversation_creator' }
+    }
+
+    await data
+      .update(messageConversations)
+      .set({
+        name:
+          input.name === undefined
+            ? conversation.name
+            : normalizeNullableText(input.name),
+        title:
+          input.title === undefined
+            ? conversation.title
+            : normalizeNullableText(input.title),
+        imageUrl:
+          input.imageUrl === undefined
+            ? conversation.imageUrl
+            : normalizeNullableText(input.imageUrl),
+        description:
+          input.description === undefined
+            ? conversation.description
+            : normalizeNullableText(input.description),
+        updatedAt: new Date(),
+      })
+      .where(eq(messageConversations.id, input.conversationId))
+
+    const updatedConversation = await this.getConversationById(
+      input.actorId,
+      input.conversationId,
+      120
+    )
+    if (!updatedConversation) {
+      return { ok: false, code: 'save_failed' }
+    }
+
+    return { ok: true, conversation: updatedConversation }
+  }
+
+  static async removeGroupMember(input: {
+    conversationId: number
+    actorId: number
+    userId: number
+  }): Promise<ConversationMutationResult> {
+    const conversation = await getConversationForUser(
+      input.conversationId,
+      input.actorId
+    )
+    if (!conversation) {
+      return { ok: false, code: 'conversation_not_found' }
+    }
+    if (conversation.type !== 'group') {
+      return { ok: false, code: 'not_group_conversation' }
+    }
+    if (conversation.creatorId !== input.actorId) {
+      return { ok: false, code: 'not_conversation_creator' }
+    }
+    if (input.userId === conversation.creatorId) {
+      return { ok: false, code: 'not_conversation_creator' }
+    }
+
+    await data
+      .delete(messageConversationMembers)
+      .where(
+        and(
+          eq(messageConversationMembers.conversationId, input.conversationId),
+          eq(messageConversationMembers.userId, input.userId)
+        )
+      )
+
+    const updatedConversation = await this.getConversationById(
+      input.actorId,
+      input.conversationId,
+      120
+    )
+    if (!updatedConversation) {
+      return { ok: false, code: 'save_failed' }
+    }
+
+    return { ok: true, conversation: updatedConversation }
+  }
+
+  static async sendMessage(
+    input: SendMessageInput
+  ): Promise<SendMessageResult> {
+    if (!input.conversationId && !input.recipientId) {
+      return { ok: false, code: 'invalid_conversation_target' }
+    }
+    if (input.conversationId && input.recipientId) {
+      return { ok: false, code: 'invalid_conversation_target' }
+    }
+    if (input.recipientId && input.senderId === input.recipientId) {
+      return { ok: false, code: 'cannot_message_self' }
+    }
+
+    const normalizedContent = input.content?.trim() ?? ''
+    if (!normalizedContent && !input.sharedPostId && !input.sharedImageId) {
+      return { ok: false, code: 'empty_message' }
+    }
+
+    const shareError = await validateSharePayload(input)
+    if (shareError) {
+      return { ok: false, code: shareError }
+    }
+
+    let conversationId = input.conversationId ?? null
+    let legacyRecipientId: number | null = null
+
+    if (input.recipientId) {
+      const directResult = await this.getOrCreateDirectConversation(
+        input.senderId,
+        input.recipientId
+      )
+      if (!directResult.ok) {
+        switch (directResult.code) {
+          case 'cannot_message_self':
+          case 'recipient_not_found':
+          case 'save_failed':
+            return { ok: false, code: directResult.code }
+          default:
+            return { ok: false, code: 'save_failed' }
+        }
       }
+      conversationId = directResult.conversation.conversationId
+      legacyRecipientId = input.recipientId
+    }
+
+    if (!conversationId) {
+      return { ok: false, code: 'invalid_conversation_target' }
+    }
+
+    const conversation = await getConversationForUser(
+      conversationId,
+      input.senderId
+    )
+    if (!conversation) {
+      return { ok: false, code: 'not_conversation_member' }
+    }
+
+    if (conversation.type === 'direct') {
+      const memberIds = await getMemberIds(conversation.id)
+      legacyRecipientId =
+        memberIds.find(memberId => memberId !== input.senderId) ?? null
     }
 
     const insertedRows = await data
       .insert(messages)
       .values({
+        conversationId,
         senderId: input.senderId,
-        recipientId: input.recipientId,
+        recipientId: legacyRecipientId,
         content: normalizedContent,
         sharedPostId: input.sharedPostId ?? null,
         sharedImageId: input.sharedImageId ?? null,
@@ -559,6 +1171,7 @@ export abstract class MessagesQueries {
     const storedRows: MessageRow[] = await data
       .select({
         id: messages.id,
+        conversationId: messages.conversationId,
         senderId: messages.senderId,
         recipientId: messages.recipientId,
         content: messages.content,
@@ -581,6 +1194,7 @@ export abstract class MessagesQueries {
     return {
       ok: true,
       message: hydratedMessage,
+      memberIds: await getMemberIds(conversation.id),
     }
   }
 }

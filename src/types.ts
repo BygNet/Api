@@ -4,6 +4,8 @@ import {
   posts,
   postComments,
   imageComments,
+  messageConversations,
+  messageConversationMembers,
   messages,
   users,
 } from '@/data/tables'
@@ -14,6 +16,12 @@ export type BygPostRaw = InferSelectModel<typeof posts>
 export type BygImageRaw = InferSelectModel<typeof images>
 export type BygPostCommentRaw = InferSelectModel<typeof postComments>
 export type BygImageCommentRaw = InferSelectModel<typeof imageComments>
+export type BygMessageConversationRaw = InferSelectModel<
+  typeof messageConversations
+>
+export type BygMessageConversationMemberRaw = InferSelectModel<
+  typeof messageConversationMembers
+>
 export type BygMessageRaw = InferSelectModel<typeof messages>
 
 // ---- API / frontend-facing models ----
@@ -122,11 +130,12 @@ export interface BygMessageSharedImage {
 
 export interface BygMessage {
   id: number
+  conversationId: number
   senderId: number
   senderUsername: string
   senderAvatarUrl: string | null
   senderSubscriptionState: string
-  recipientId: number
+  recipientId: number | null
   recipientUsername: string
   recipientAvatarUrl: string | null
   recipientSubscriptionState: string
@@ -136,20 +145,37 @@ export interface BygMessage {
   sharedImage: BygMessageSharedImage | null
 }
 
-export interface BygMessageThread {
+export interface BygMessageConversationMember {
   userId: number
   username: string
   avatarUrl: string | null
   subscriptionState: string
+  isCreator: boolean
+  joinedDate: string
+}
+
+export interface BygMessageThread {
+  conversationId: number
+  type: 'direct' | 'group'
+  name: string | null
+  title: string | null
+  imageUrl: string | null
+  description: string | null
+  creatorId: number
+  members: BygMessageConversationMember[]
   lastMessagePreview: string
   lastMessageDate: string
 }
 
 export interface BygMessageConversation {
-  userId: number
-  username: string
-  avatarUrl: string | null
-  subscriptionState: string
+  conversationId: number
+  type: 'direct' | 'group'
+  name: string | null
+  title: string | null
+  imageUrl: string | null
+  description: string | null
+  creatorId: number
+  members: BygMessageConversationMember[]
   messages: BygMessage[]
 }
 

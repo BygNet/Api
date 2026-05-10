@@ -29,6 +29,13 @@
       "when": 1778329205301,
       "tag": "0003_hot_blink",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1778400000000,
+      "tag": "0004_group_message_conversations",
+      "breakpoints": true
     }
   ]
 }

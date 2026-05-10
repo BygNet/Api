@@ -1,11 +1,15 @@
 import {
+  check,
   pgTable,
   integer,
+  index,
+  uniqueIndex,
   serial,
   text,
   uuid,
   timestamp,
 } from 'drizzle-orm/pg-core'
+import { sql } from 'drizzle-orm'
 
 export const users = pgTable('users', {
   id: serial('id').primaryKey(),
@@ -111,25 +115,85 @@ export const followings = pgTable('followings', {
     .defaultNow(),
 })
 
-export const messages = pgTable('messages', {
-  id: serial('id').primaryKey(),
-  senderId: integer('sender_id')
-    .notNull()
-    .references(() => users.id, { onDelete: 'cascade' }),
-  recipientId: integer('recipient_id')
-    .notNull()
-    .references(() => users.id, { onDelete: 'cascade' }),
-  content: text('content').notNull().default(''),
-  sharedPostId: integer('shared_post_id').references(() => posts.id, {
-    onDelete: 'set null',
-  }),
-  sharedImageId: integer('shared_image_id').references(() => images.id, {
-    onDelete: 'set null',
-  }),
-  createdAt: timestamp('created_at', { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-})
+export const messageConversations = pgTable(
+  'message_conversations',
+  {
+    id: serial('id').primaryKey(),
+    type: text('type', { enum: ['direct', 'group'] }).notNull(),
+    name: text('name'),
+    title: text('title'),
+    imageUrl: text('image_url'),
+    description: text('description'),
+    creatorId: integer('creator_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  table => [
+    check(
+      'message_conversations_type_check',
+      sql`${table.type} in ('direct', 'group')`
+    ),
+  ]
+)
+
+export const messageConversationMembers = pgTable(
+  'message_conversation_members',
+  {
+    id: serial('id').primaryKey(),
+    conversationId: integer('conversation_id')
+      .notNull()
+      .references(() => messageConversations.id, { onDelete: 'cascade' }),
+    userId: integer('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    invitedById: integer('invited_by_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  table => [
+    uniqueIndex('message_conversation_members_unique').on(
+      table.conversationId,
+      table.userId
+    ),
+    index('message_conversation_members_user_id_idx').on(table.userId),
+  ]
+)
+
+export const messages = pgTable(
+  'messages',
+  {
+    id: serial('id').primaryKey(),
+    conversationId: integer('conversation_id')
+      .notNull()
+      .references(() => messageConversations.id, { onDelete: 'cascade' }),
+    senderId: integer('sender_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    recipientId: integer('recipient_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+    content: text('content').notNull().default(''),
+    sharedPostId: integer('shared_post_id').references(() => posts.id, {
+      onDelete: 'set null',
+    }),
+    sharedImageId: integer('shared_image_id').references(() => images.id, {
+      onDelete: 'set null',
+    }),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  table => [index('messages_conversation_id_idx').on(table.conversationId)]
+)
 
 export const shortLinks = pgTable('short_links', {
   slug: text('slug').primaryKey(),

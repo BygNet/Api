@@ -175,10 +175,7 @@ export abstract class ProfileController {
       normalizedUpdates.songLinkUrl = normalizedUrl
     }
 
-    const result = await ProfileQueries.updateProfile(
-      userId,
-      normalizedUpdates
-    )
+    const result = await ProfileQueries.updateProfile(userId, normalizedUpdates)
 
     return result ? 204 : 500
   }

@@ -4,6 +4,7 @@ import { data } from '@/data/client'
 import {
   followings,
   imageComments,
+  messageConversationMembers,
   messages,
   images,
   postComments,
@@ -72,6 +73,7 @@ type ImageCommentMentionNotificationRow = {
 
 type MessageNotificationRow = {
   id: number
+  conversationId: number
   content: string
   sharedPostId: number | null
   sharedImageId: number | null
@@ -244,6 +246,7 @@ export abstract class NotificationsQueries {
       data
         .select({
           id: messages.id,
+          conversationId: messages.conversationId,
           content: messages.content,
           sharedPostId: messages.sharedPostId,
           sharedImageId: messages.sharedImageId,
@@ -253,9 +256,16 @@ export abstract class NotificationsQueries {
           createdAt: messages.createdAt,
         })
         .from(messages)
+        .innerJoin(
+          messageConversationMembers,
+          eq(messageConversationMembers.conversationId, messages.conversationId)
+        )
         .leftJoin(users, eq(messages.senderId, users.id))
         .where(
-          and(eq(messages.recipientId, userId), ne(messages.senderId, userId))
+          and(
+            eq(messageConversationMembers.userId, userId),
+            ne(messages.senderId, userId)
+          )
         )
         .orderBy(sql`${messages.id} desc`)
         .limit(boundedLimit) as Promise<MessageNotificationRow[]>,
@@ -385,8 +395,6 @@ export abstract class NotificationsQueries {
 
       ...messageRows.map(row => {
         const actorUsername = row.actorUsername ?? 'unknown'
-        const encodedActor = encodeURIComponent(actorUsername)
-
         return {
           id: `message-${row.id}`,
           type: 'message' as const,
@@ -396,7 +404,7 @@ export abstract class NotificationsQueries {
             row.actorSubscriptionState
           ),
           text: `${actorUsername} ${summarizeMessageContent(row)}`,
-          path: `/messages?with=${encodedActor}`,
+          path: `/messages?conversation=${row.conversationId}`,
           createdDate: row.createdAt.toISOString(),
         }
       }),

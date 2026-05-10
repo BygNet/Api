@@ -1,0 +1,13 @@
+type: folder
+model: folder
+id: fl_tqaQ7mURKm
+createdAt: 2026-05-10T14:49:10.901528
+updatedAt: 2026-05-10T14:49:21.543360
+workspaceId: wk_4d6NvbCu5c
+folderId: null
+authentication: {}
+authenticationType: null
+description: ''
+headers: []
+name: messages
+sortPriority: 4333.333333333333

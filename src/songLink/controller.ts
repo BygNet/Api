@@ -196,8 +196,7 @@ export abstract class SongLinkController {
       const title =
         asString(entityData?.title) ?? asString(primarySection?.title)
       const artistName =
-        asString(entityData?.artistName) ??
-        asString(primarySection?.artistName)
+        asString(entityData?.artistName) ?? asString(primarySection?.artistName)
       const thumbnailUrl =
         normalizeHttpUrl(asString(entityData?.thumbnailUrl)) ??
         normalizeHttpUrl(asString(primarySection?.thumbnailUrl))

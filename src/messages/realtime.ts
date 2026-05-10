@@ -226,16 +226,20 @@ export abstract class MessagesRealtimeService {
     this.unregisterSocket(normalizeSocketIdentity(socket))
   }
 
-  static broadcastMessage(message: BygMessage): void {
+  static broadcastMessage(message: BygMessage, memberIds?: number[]): void {
     const event: BygLiveMessageEvent = {
       type: 'message:new',
       message,
     }
 
-    this.sendToUser(message.senderId, event)
+    const targetUserIds = memberIds?.length
+      ? memberIds
+      : [message.senderId, message.recipientId].filter(
+          (id): id is number => id !== null
+        )
 
-    if (message.recipientId !== message.senderId) {
-      this.sendToUser(message.recipientId, event)
+    for (const userId of new Set(targetUserIds)) {
+      this.sendToUser(userId, event)
     }
   }
 

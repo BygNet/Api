@@ -15,6 +15,10 @@ import {
   MessageSendBody,
   CreatePostSchema,
   EnableTwoFactorSchema,
+  MessageConversationInfoSchema,
+  MessageConversationInviteSchema,
+  MessageDirectConversationSchema,
+  MessageGroupConversationSchema,
   MessageSendSchema,
   PushSubscriptionBody,
   PushSubscriptionSchema,
@@ -738,9 +742,14 @@ BygApi.use(html())
   )
   .get(
     '/song-link-info',
-    async ({ query, set }): Promise<BygSongLinkInfo | null> => {
+    async ({
+      query,
+      set,
+    }): Promise<BygSongLinkInfo | null> => {
       try {
-        return await SongLinkController.getSongLinkInfo(query.url)
+        return await SongLinkController.getSongLinkInfo(
+          query.url
+        )
       } catch (error: unknown) {
         if (error instanceof SongLinkFetchError) {
           set.status = error.statusCode
@@ -1208,6 +1217,55 @@ BygApi.use(html())
     }
   )
   .get(
+    '/messages/conversations/:conversationId',
+    async ({ userId, params, query, set }) => {
+      if (!userId) {
+        set.status = 401
+        return null
+      }
+
+      const conversationId = Number(params.conversationId)
+      if (!Number.isFinite(conversationId)) {
+        set.status = 400
+        return null
+      }
+
+      const rawLimit = Number(query.limit ?? '120')
+      const limit = Number.isFinite(rawLimit)
+        ? rawLimit
+        : 120
+      const conversation =
+        await MessagesController.getConversation(
+          userId,
+          conversationId,
+          limit
+        )
+
+      if (!conversation) {
+        set.status = 404
+        return null
+      }
+
+      return conversation
+    },
+    {
+      query: t.Object({
+        limit: t.Optional(t.String()),
+      }),
+      response: {
+        200: t.Ref('Any'),
+        400: t.Ref('Empty'),
+        401: t.Ref('Empty'),
+        404: t.Ref('Empty'),
+      },
+      detail: {
+        tags: ['Messages'],
+        description:
+          'Get conversation messages by conversation id',
+      },
+    }
+  )
+  .get(
     '/messages/conversation/:username',
     async ({ userId, params, query, set }) => {
       if (!userId) {
@@ -1220,7 +1278,7 @@ BygApi.use(html())
         ? rawLimit
         : 120
       const conversation =
-        await MessagesController.getConversation(
+        await MessagesController.getConversationByUsername(
           userId,
           params.username,
           limit
@@ -1245,7 +1303,185 @@ BygApi.use(html())
       detail: {
         tags: ['Messages'],
         description:
-          'Get conversation messages with another user by username',
+          'Get or preview a direct conversation with another user by username',
+      },
+    }
+  )
+  .post(
+    '/messages/conversations/direct',
+    async ({ body, userId, set }) => {
+      if (!userId) {
+        set.status = 401
+        return null
+      }
+
+      return await MessagesController.getOrCreateDirectConversation(
+        body,
+        userId,
+        set
+      )
+    },
+    {
+      body: MessageDirectConversationSchema,
+      response: {
+        200: t.Ref('Any'),
+        400: t.Ref('Empty'),
+        401: t.Ref('Empty'),
+        403: t.Ref('Empty'),
+        404: t.Ref('Empty'),
+        500: t.Ref('Empty'),
+      },
+      detail: {
+        tags: ['Messages'],
+        description:
+          'Get or create a direct message conversation',
+      },
+    }
+  )
+  .post(
+    '/messages/conversations/group',
+    async ({ body, userId, set }) => {
+      if (!userId) {
+        set.status = 401
+        return null
+      }
+
+      return await MessagesController.createGroupConversation(
+        body,
+        userId,
+        set
+      )
+    },
+    {
+      body: MessageGroupConversationSchema,
+      response: {
+        200: t.Ref('Any'),
+        400: t.Ref('Empty'),
+        401: t.Ref('Empty'),
+        403: t.Ref('Empty'),
+        404: t.Ref('Empty'),
+        500: t.Ref('Empty'),
+      },
+      detail: {
+        tags: ['Messages'],
+        description: 'Create a group conversation',
+      },
+    }
+  )
+  .post(
+    '/messages/conversations/:conversationId/members',
+    async ({ body, userId, params, set }) => {
+      if (!userId) {
+        set.status = 401
+        return null
+      }
+
+      const conversationId = Number(params.conversationId)
+      if (!Number.isFinite(conversationId)) {
+        set.status = 400
+        return null
+      }
+
+      return await MessagesController.inviteGroupMember(
+        conversationId,
+        body,
+        userId,
+        set
+      )
+    },
+    {
+      body: MessageConversationInviteSchema,
+      response: {
+        200: t.Ref('Any'),
+        400: t.Ref('Empty'),
+        401: t.Ref('Empty'),
+        403: t.Ref('Empty'),
+        404: t.Ref('Empty'),
+        500: t.Ref('Empty'),
+      },
+      detail: {
+        tags: ['Messages'],
+        description:
+          'Invite a member to a group conversation as the creator',
+      },
+    }
+  )
+  .delete(
+    '/messages/conversations/:conversationId/members/:memberUserId',
+    async ({ userId, params, set }) => {
+      if (!userId) {
+        set.status = 401
+        return null
+      }
+
+      const conversationId = Number(params.conversationId)
+      const memberUserId = Number(params.memberUserId)
+      if (
+        !Number.isFinite(conversationId) ||
+        !Number.isFinite(memberUserId)
+      ) {
+        set.status = 400
+        return null
+      }
+
+      return await MessagesController.removeGroupMember(
+        conversationId,
+        memberUserId,
+        userId,
+        set
+      )
+    },
+    {
+      response: {
+        200: t.Ref('Any'),
+        400: t.Ref('Empty'),
+        401: t.Ref('Empty'),
+        403: t.Ref('Empty'),
+        404: t.Ref('Empty'),
+        500: t.Ref('Empty'),
+      },
+      detail: {
+        tags: ['Messages'],
+        description:
+          'Remove a member from a group conversation as the creator',
+      },
+    }
+  )
+  .patch(
+    '/messages/conversations/:conversationId',
+    async ({ body, userId, params, set }) => {
+      if (!userId) {
+        set.status = 401
+        return null
+      }
+
+      const conversationId = Number(params.conversationId)
+      if (!Number.isFinite(conversationId)) {
+        set.status = 400
+        return null
+      }
+
+      return await MessagesController.updateGroupInfo(
+        conversationId,
+        body,
+        userId,
+        set
+      )
+    },
+    {
+      body: MessageConversationInfoSchema,
+      response: {
+        200: t.Ref('Any'),
+        400: t.Ref('Empty'),
+        401: t.Ref('Empty'),
+        403: t.Ref('Empty'),
+        404: t.Ref('Empty'),
+        500: t.Ref('Empty'),
+      },
+      detail: {
+        tags: ['Messages'],
+        description:
+          'Update group conversation name and title as the creator',
       },
     }
   )
@@ -1303,13 +1539,14 @@ BygApi.use(html())
         200: t.Ref('Any'),
         400: t.Ref('Empty'),
         401: t.Ref('Empty'),
+        403: t.Ref('Empty'),
         404: t.Ref('Empty'),
         500: t.Ref('Empty'),
       },
       detail: {
         tags: ['Messages'],
         description:
-          'Send a direct message, optionally sharing a post or image',
+          'Send a message to a conversation or direct recipient',
       },
     }
   )

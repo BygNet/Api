@@ -4,7 +4,7 @@ export default definePackage({
   pm: BunPm,
   name: '@bygnet/api',
   description: 'Elysia-based API for Byg Platform.',
-  version: '1.8.0',
+  version: '1.9.0',
   module: 'src/main.ts',
 
   scripts: {
@@ -15,8 +15,6 @@ export default definePackage({
     // db scripts
     'db:generate': 'bunx drizzle-kit generate',
     'db:push': 'bunx drizzle-kit push',
-    'db:push:dev': 'bunx drizzle-kit push',
-    'db:push:prod': 'bunx drizzle-kit push',
     'db:migrate:sqlite': 'bun run src/data/migrateSqliteToPostgres.ts',
   },
 

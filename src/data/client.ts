@@ -13,9 +13,7 @@ const databaseSslMode = process.env.DATABASE_SSL?.trim().toLowerCase()
 const shouldUseSsl =
   databaseSslMode === 'require' ||
   databaseSslMode === 'true' ||
-  (databaseSslMode !== 'disable' &&
-    databaseSslMode !== 'false' &&
-    isProd)
+  (databaseSslMode !== 'disable' && databaseSslMode !== 'false' && isProd)
 
 const sql = postgres(databaseUrl, {
   ssl: shouldUseSsl ? 'require' : false,

@@ -1,0 +1,19 @@
+type: http_request
+model: http_request
+id: rq_p3EBwve4Nu
+createdAt: 2026-05-10T14:49:23.954193
+updatedAt: 2026-05-10T14:51:32.613968
+workspaceId: wk_4d6NvbCu5c
+folderId: fl_tqaQ7mURKm
+authentication:
+  token: ${[ testToken ]}
+authenticationType: bearer
+body: {}
+bodyType: null
+description: ''
+headers: []
+method: GET
+name: /threads
+sortPriority: 1000.0
+url: ${[ baseUrl ]}/messages/threads?limit=30
+urlParameters: []
