@@ -254,6 +254,7 @@ BygApi.use(html())
         'http://localhost:2253', // Byg Asks dev
         'https://byg.gg', // Byg
         'https://share.byg.gg', // Byg Share
+        'https://asks.byg.gg', // Byg Asks
         'https://byg.a35.dev', // Legacy Byg
       ],
       credentials: true,
