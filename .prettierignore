@@ -7,3 +7,5 @@ bun.lock
 .prettierignore
 data.db
 yaak
+drizzle
+data

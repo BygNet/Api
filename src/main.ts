@@ -11,6 +11,7 @@ import { html } from '@elysiajs/html'
 import { LikeController } from '@/like/controller'
 import { CreateController } from '@/create/controller'
 import {
+  AskCreateSchema,
   CommentSchema,
   MessageSendBody,
   CreatePostSchema,
@@ -34,6 +35,7 @@ import { cors } from '@elysiajs/cors'
 import { ShareController } from '@/share/controller'
 import { AuthController } from '@/auth/controller'
 import { CommentsController } from '@/comments/controller'
+import { AsksController } from '@/asks/controller'
 import { ProfileController } from '@/profile/controller'
 import { NotificationsController } from '@/notifications/controller'
 import { PushService } from '@/push/service'
@@ -106,6 +108,14 @@ const ShortLinkSchema = t.Object({
   url: t.String(),
 })
 
+const AskSchema = t.Object({
+  id: t.Number(),
+  content: t.String(),
+  createdDate: t.String(),
+})
+
+const AskArraySchema = t.Array(AskSchema)
+
 const SongLinkInfoSchema = t.Object({
   requestedUrl: t.String(),
   finalUrl: t.String(),
@@ -151,6 +161,8 @@ BygApi.model({
   TwoFactorSetup: TwoFactorSetupSchema,
   PushPublicKey: PushPublicKeySchema,
   ShortLink: ShortLinkSchema,
+  Ask: AskSchema,
+  AskArray: AskArraySchema,
   SongLinkInfo: SongLinkInfoSchema,
   Status: StatusSchema,
   Empty: EmptySchema,
@@ -174,6 +186,7 @@ const writePathPrefixes: string[] = [
   '/follow-user',
   '/update-profile',
   '/messages/send',
+  '/asks',
   '/push/subscribe',
   '/push/unsubscribe',
   '/short-links',
@@ -238,6 +251,7 @@ BygApi.use(html())
       origin: [
         'http://localhost:2257', // Byg dev
         'http://localhost:2258', // Byg Share dev
+        'http://localhost:2253', // Byg Asks dev
         'https://byg.gg', // Byg
         'https://share.byg.gg', // Byg Share
         'https://byg.a35.dev', // Legacy Byg
@@ -275,6 +289,11 @@ BygApi.use(html())
           {
             name: 'Create',
             description: 'Content creation endpoints',
+          },
+          {
+            name: 'Asks',
+            description:
+              'Anonymous ask submission and inbox',
           },
           {
             name: 'Notifications',
@@ -1179,6 +1198,71 @@ BygApi.use(html())
         tags: ['Notifications'],
         description:
           'Get recent notifications for the authenticated user',
+      },
+    }
+  )
+  .get(
+    '/asks',
+    async ({ userId, query, set }) => {
+      if (!userId) {
+        set.status = 401
+        return null
+      }
+
+      const rawLimit = Number(query.limit ?? '40')
+      const limit = Number.isFinite(rawLimit)
+        ? rawLimit
+        : 40
+
+      return await AsksController.getAsks(userId, limit)
+    },
+    {
+      query: t.Object({
+        limit: t.Optional(t.String()),
+      }),
+      response: {
+        200: t.Ref('AskArray'),
+        401: t.Ref('Empty'),
+      },
+      detail: {
+        tags: ['Asks'],
+        description:
+          'Get recent asks for the authenticated user',
+      },
+    }
+  )
+  .post(
+    '/asks/:username',
+    async ({ body, params, set }) => {
+      const result = await AsksController.submitAsk(
+        params.username,
+        body.content
+      )
+
+      if (!result.ok) {
+        switch (result.code) {
+          case 'empty_ask':
+            set.status = 400
+            return null
+          case 'recipient_not_found':
+            set.status = 404
+            return null
+        }
+      }
+
+      return { status: 'ok' }
+    },
+    {
+      body: AskCreateSchema,
+      response: {
+        200: t.Ref('Status'),
+        400: t.Ref('Empty'),
+        404: t.Ref('Empty'),
+      },
+      detail: {
+        tags: ['Asks'],
+        description:
+          'Submit an anonymous ask for a user by username',
       },
     }
   )

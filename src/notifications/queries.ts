@@ -2,6 +2,7 @@ import { and, eq, ne, sql } from 'drizzle-orm'
 
 import { data } from '@/data/client'
 import {
+  asks,
   followings,
   imageComments,
   messageConversationMembers,
@@ -83,6 +84,12 @@ type MessageNotificationRow = {
   createdAt: Date
 }
 
+type AskNotificationRow = {
+  id: number
+  content: string
+  createdAt: Date
+}
+
 function normalizeSubscription(state: string | null): string {
   return state ?? 'free'
 }
@@ -108,6 +115,12 @@ function summarizeMessageContent(
   if (row.sharedPostId) return 'shared a post with you'
   if (row.sharedImageId) return 'shared an image with you'
   return 'sent you a message'
+}
+
+function summarizeAskContent(content: string): string {
+  const trimmed = content.trim()
+  if (trimmed.length <= 80) return trimmed
+  return `${trimmed.slice(0, 80)}…`
 }
 
 export abstract class NotificationsQueries {
@@ -139,6 +152,7 @@ export abstract class NotificationsQueries {
       postCommentMentionRows,
       imageCommentMentionRows,
       messageRows,
+      askRows,
     ] = await Promise.all([
       data
         .select({
@@ -269,6 +283,17 @@ export abstract class NotificationsQueries {
         )
         .orderBy(sql`${messages.id} desc`)
         .limit(boundedLimit) as Promise<MessageNotificationRow[]>,
+
+      data
+        .select({
+          id: asks.id,
+          content: asks.content,
+          createdAt: asks.createdAt,
+        })
+        .from(asks)
+        .where(eq(asks.recipientId, userId))
+        .orderBy(sql`${asks.id} desc`)
+        .limit(boundedLimit) as Promise<AskNotificationRow[]>,
     ])
 
     const notifications: BygNotification[] = [
@@ -408,6 +433,17 @@ export abstract class NotificationsQueries {
           createdDate: row.createdAt.toISOString(),
         }
       }),
+
+      ...askRows.map(row => ({
+        id: `ask-${row.id}`,
+        type: 'ask' as const,
+        actorUsername: 'anonymous',
+        actorAvatarUrl: null,
+        actorSubscriptionState: 'free',
+        text: `Anonymous asked: ${summarizeAskContent(row.content)}`,
+        path: '/asks',
+        createdDate: row.createdAt.toISOString(),
+      })),
     ]
 
     return notifications

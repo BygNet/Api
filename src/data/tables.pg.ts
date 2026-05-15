@@ -115,6 +115,21 @@ export const followings = pgTable('followings', {
     .defaultNow(),
 })
 
+export const asks = pgTable(
+  'asks',
+  {
+    id: serial('id').primaryKey(),
+    recipientId: integer('recipient_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    content: text('content').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  table => [index('asks_recipient_id_idx').on(table.recipientId)]
+)
+
 export const messageConversations = pgTable(
   'message_conversations',
   {

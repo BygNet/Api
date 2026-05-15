@@ -100,3 +100,8 @@ export const ShortLinkCreateSchema = t.Object({
   url: t.String(),
 })
 export type ShortLinkCreateBody = typeof ShortLinkCreateSchema.static
+
+export const AskCreateSchema = t.Object({
+  content: t.String(),
+})
+export type AskCreateBody = typeof AskCreateSchema.static

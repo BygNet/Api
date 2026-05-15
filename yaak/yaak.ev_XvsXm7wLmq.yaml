@@ -3,7 +3,7 @@ model: environment
 id: ev_XvsXm7wLmq
 workspaceId: wk_4d6NvbCu5c
 createdAt: 2026-01-11T15:11:40.804419
-updatedAt: 2026-05-08T14:27:11.081822
+updatedAt: 2026-05-11T18:54:56.171616
 name: Prod
 public: true
 base: false
@@ -18,5 +18,5 @@ variables:
   name: testToken
   value: 'NULL'
   id: r4HCsGvkJA
-color: var(--info)
+color: var(--danger)
 sortPriority: 1000.0

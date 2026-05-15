@@ -1,5 +1,6 @@
 import { InferSelectModel } from 'drizzle-orm'
 import {
+  asks,
   images,
   posts,
   postComments,
@@ -16,6 +17,7 @@ export type BygPostRaw = InferSelectModel<typeof posts>
 export type BygImageRaw = InferSelectModel<typeof images>
 export type BygPostCommentRaw = InferSelectModel<typeof postComments>
 export type BygImageCommentRaw = InferSelectModel<typeof imageComments>
+export type BygAskRaw = InferSelectModel<typeof asks>
 export type BygMessageConversationRaw = InferSelectModel<
   typeof messageConversations
 >
@@ -48,6 +50,7 @@ export type BygNotificationType =
   | 'image_comment'
   | 'post_mention'
   | 'comment_mention'
+  | 'ask'
   | 'message'
 
 export interface BygNotification {
@@ -58,6 +61,12 @@ export interface BygNotification {
   actorSubscriptionState: string
   text: string
   path: string
+  createdDate: string
+}
+
+export interface BygAsk {
+  id: number
+  content: string
   createdDate: string
 }
 
