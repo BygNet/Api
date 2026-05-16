@@ -627,6 +627,40 @@ BygApi.use(html())
     }
   )
   .get(
+    '/posts/:username',
+    async ({ params }): Promise<BygPost[]> =>
+      await BrowseController.getPostsByUsername(
+        params.username
+      ),
+    {
+      response: {
+        200: t.Ref('AnyArray'),
+      },
+      detail: {
+        tags: ['Browse'],
+        description:
+          'Fetch posts by username',
+      },
+    }
+  )
+  .get(
+    '/images/:username',
+    async ({ params }): Promise<BygImage[]> =>
+      await BrowseController.getImagesByUsername(
+        params.username
+      ),
+    {
+      response: {
+        200: t.Ref('AnyArray'),
+      },
+      detail: {
+        tags: ['Browse'],
+        description:
+          'Fetch images by username',
+      },
+    }
+  )
+  .get(
     '/user-suggestions',
     async ({ query }) => {
       const rawQuery = query.q?.trim() ?? ''
