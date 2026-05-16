@@ -59,6 +59,7 @@ import { data } from '@/data/client'
 import { sessions } from '@/data/tables'
 import { eq } from 'drizzle-orm'
 import { swagger } from '@elysiajs/swagger'
+import { rssRoutes } from '@/rss/routes'
 import pkgInfo from '../package'
 
 const UserSchema = t.Object({
@@ -246,6 +247,7 @@ BygApi.derive(
 
 // Routes
 BygApi.use(html())
+  .use(rssRoutes)
   .use(
     cors({
       origin: [

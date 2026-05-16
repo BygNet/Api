@@ -1,4 +1,4 @@
-const DEFAULT_WEB_BASE = 'https://byg.a35.dev'
+const DEFAULT_WEB_BASE = 'https://byg.gg'
 
 function normalizeBaseUrl(value: string): string | null {
   const trimmed = value.trim()

@@ -1,0 +1,13 @@
+type: folder
+model: folder
+id: fl_W9NG88icgs
+createdAt: 2026-05-16T12:33:48.177386
+updatedAt: 2026-05-16T12:33:54.863555
+workspaceId: wk_4d6NvbCu5c
+folderId: null
+authentication: {}
+authenticationType: null
+description: ''
+headers: []
+name: rss
+sortPriority: 3333.3333333333335

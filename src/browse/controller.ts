@@ -13,14 +13,22 @@ export abstract class BrowseController {
     return data[0]
   }
 
+  static async browseImages(): Promise<BygImage[]> {
+    console.info('Images Loaded')
+    return await BrowseQueries.getImages()
+  }
+
   static async getImageInfo(id: number): Promise<BygImage> {
     console.info('Getting Image Info')
     const data: BygImage[] = await BrowseQueries.getImageById(id)
     return data[0]
   }
 
-  static async browseImages(): Promise<BygImage[]> {
-    console.info('Images Loaded')
-    return await BrowseQueries.getImages()
+  static async getPostsByUsername(username: string): Promise<BygPost[]> {
+    return await BrowseQueries.getPostsByUsername(username)
+  }
+
+  static async getImagesByUsername(username: string): Promise<BygImage[]> {
+    return await BrowseQueries.getImagesByUsername(username)
   }
 }
