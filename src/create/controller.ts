@@ -3,6 +3,7 @@ import { CreatePostBody, UploadImageBody } from '@/schemas'
 import { ProfileQueries } from '@/profile/queries'
 import { PushService } from '@/push/service'
 import { extractMentionUsernames } from '@/utils/mentions'
+import { logger } from '@/observability/logger'
 
 function shortenText(value: string): string {
   const trimmed = value.trim()
@@ -44,7 +45,11 @@ export abstract class CreateController {
       )
     }
 
-    console.info('Post saved.')
+    logger.info('post.created', {
+      postId,
+      userId,
+      mentionCount: extractMentionUsernames(post.content).length,
+    })
     return 204
   }
 
@@ -57,7 +62,10 @@ export abstract class CreateController {
       imageUrl: image.imageUrl,
       authorId: userId,
     })
-    console.info('Image saved.')
+    logger.info('image.created', {
+      userId,
+      titleLength: image.title.length,
+    })
     return 204
   }
 }

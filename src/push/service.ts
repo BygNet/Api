@@ -4,6 +4,7 @@ import { and, eq, gt } from 'drizzle-orm'
 import { data } from '@/data/client'
 import { sessions } from '@/data/tables'
 import type { BygNotificationType } from '@/types'
+import { logger } from '@/observability/logger'
 
 export interface PushSubscriptionData {
   endpoint: string
@@ -111,10 +112,19 @@ export abstract class PushService {
 
           if (statusCode === 404 || statusCode === 410) {
             userSubscriptions.delete(subscription.endpoint)
+            logger.warn('push.subscription_expired', {
+              userId,
+              statusCode,
+              notificationType: payload.type,
+            })
             return
           }
 
-          console.error('Push send failed', error)
+          logger.error('push.send_failed', error, {
+            userId,
+            statusCode,
+            notificationType: payload.type,
+          })
         }
       })
     )

@@ -1,10 +1,12 @@
 import { createHmac, randomBytes, randomInt } from 'node:crypto'
+import { logger } from '@/observability/logger'
 
 const BASE32_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'
 const TOTP_DIGITS = 6
 const TOTP_STEP_SECONDS = 30
 const TOTP_WINDOW = 1
 const TOTP_ISSUER = process.env.TOTP_ISSUER ?? 'Byg'
+
 const RESEND_API_URL = 'https://api.resend.com/emails'
 const RESEND_FROM = process.env.RESEND_FROM ?? 'Byg <onboarding@resend.dev>'
 
@@ -152,7 +154,10 @@ export async function sendEmailVerificationEmail(input: {
   const resendApiKey = process.env.RESEND_API_KEY?.trim()
 
   if (!resendApiKey) {
-    console.warn('RESEND_API_KEY is missing, skipping email verification send')
+    logger.warn('auth.email_send_skipped', {
+      reason: 'missing_resend_api_key',
+      username: input.username,
+    })
     return
   }
 

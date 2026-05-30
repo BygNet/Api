@@ -4,6 +4,7 @@ import { CommentBody } from '@/schemas'
 import { ProfileQueries } from '@/profile/queries'
 import { PushService } from '@/push/service'
 import { extractMentionUsernames } from '@/utils/mentions'
+import { logger } from '@/observability/logger'
 
 function shortenComment(content: string): string {
   const trimmed = content.trim()
@@ -63,9 +64,19 @@ export abstract class CommentsController {
         )
       }
 
+      logger.info('post.comment_created', {
+        postId: body.id,
+        userId,
+        mentionCount: extractMentionUsernames(body.content).length,
+        notifiedOwner: !!result.targetUserId && result.targetUserId !== userId,
+      })
+
       return 200
     } catch (e) {
-      console.error(e)
+      logger.error('post.comment_failed', e, {
+        postId: body.id,
+        userId,
+      })
       return 500
     }
   }
@@ -116,9 +127,19 @@ export abstract class CommentsController {
         )
       }
 
+      logger.info('image.comment_created', {
+        imageId: body.id,
+        userId,
+        mentionCount: extractMentionUsernames(body.content).length,
+        notifiedOwner: !!result.targetUserId && result.targetUserId !== userId,
+      })
+
       return 200
     } catch (e) {
-      console.error(e)
+      logger.error('image.comment_failed', e, {
+        imageId: body.id,
+        userId,
+      })
       return 500
     }
   }

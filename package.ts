@@ -4,7 +4,7 @@ export default definePackage({
   pm: BunPm,
   name: '@bygnet/api',
   description: 'Elysia-based API for Byg Platform.',
-  version: '1.11.0',
+  version: '1.12.0',
   module: 'src/main.ts',
 
   scripts: {
@@ -22,6 +22,11 @@ export default definePackage({
     '@elysiajs/cors': '^1.4.1',
     '@elysiajs/html': '^1.4.0',
     '@elysiajs/swagger': '^1.3.1',
+    '@opentelemetry/api-logs': '^0.218.0',
+    '@opentelemetry/exporter-logs-otlp-http': '^0.218.0',
+    '@opentelemetry/resources': '^2.7.1',
+    '@opentelemetry/sdk-logs': '^0.218.0',
+    '@opentelemetry/sdk-node': '^0.218.0',
     '@opk/ts-pkg': '^0.7.1',
     '@types/jsonwebtoken': '^9.0.10',
     argon2: '^0.44.0',

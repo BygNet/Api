@@ -61,6 +61,17 @@ import { eq } from 'drizzle-orm'
 import { swagger } from '@elysiajs/swagger'
 import { rssRoutes } from '@/rss/routes'
 import pkgInfo from '../package'
+import {
+  initObservability,
+  logger,
+  shutdownObservability,
+} from '@/observability/logger'
+
+initObservability({
+  serviceName: process.env.OTEL_SERVICE_NAME ?? 'byg-api',
+  serviceVersion: pkgInfo.version,
+  environment: process.env.NODE_ENV ?? 'development',
+})
 
 const UserSchema = t.Object({
   id: t.Number(),
@@ -198,6 +209,81 @@ const writePathPrefixes: string[] = [
 ]
 
 const JWT_SECRET = process.env.JWT_SECRET ?? 'dev-secret'
+const requestStartTimes = new WeakMap<Request, number>()
+
+function requestPath(request: Request): string {
+  return new URL(request.url).pathname
+}
+
+function requestAttributes({
+  request,
+  status,
+  userId,
+  durationMs,
+}: {
+  request: Request
+  status?: number | string
+  userId?: number | null
+  durationMs?: number
+}) {
+  const headers = request.headers
+  return {
+    httpMethod: request.method,
+    path: requestPath(request),
+    statusCode:
+      typeof status === 'number' ||
+      typeof status === 'string'
+        ? status
+        : 200,
+    durationMs,
+    userId,
+    posthogDistinctId: headers.get('x-posthog-distinct-id'),
+    sessionId: headers.get('x-posthog-session-id'),
+    userAgent: headers.get('user-agent'),
+  }
+}
+
+BygApi.onRequest(({ request }) => {
+  requestStartTimes.set(request, performance.now())
+})
+
+BygApi.onAfterHandle(({ request, set, userId }) => {
+  const startedAt = requestStartTimes.get(request)
+  const durationMs =
+    startedAt === undefined
+      ? undefined
+      : Math.round((performance.now() - startedAt) * 100) /
+        100
+
+  logger.info(
+    'http.request.completed',
+    requestAttributes({
+      request,
+      status: set.status,
+      userId,
+      durationMs,
+    })
+  )
+})
+
+BygApi.onError(({ request, set, error, code, userId }) => {
+  const startedAt = requestStartTimes.get(request)
+  const durationMs =
+    startedAt === undefined
+      ? undefined
+      : Math.round((performance.now() - startedAt) * 100) /
+        100
+
+  logger.error('http.request.failed', error, {
+    ...requestAttributes({
+      request,
+      status: set.status,
+      userId,
+      durationMs,
+    }),
+    errorCode: code,
+  })
+})
 
 BygApi.onBeforeHandle(({ request, set }) => {
   if (!IsLocked) return
@@ -211,6 +297,10 @@ BygApi.onBeforeHandle(({ request, set }) => {
       path.startsWith(prefix)
     )
   ) {
+    logger.warn('http.write_locked', {
+      httpMethod: request.method,
+      path,
+    })
     set.status = 503
     return 'Writes are temporarily disabled'
   }
@@ -638,8 +728,7 @@ BygApi.use(html())
       },
       detail: {
         tags: ['Browse'],
-        description:
-          'Fetch posts by username',
+        description: 'Fetch posts by username',
       },
     }
   )
@@ -655,8 +744,7 @@ BygApi.use(html())
       },
       detail: {
         tags: ['Browse'],
-        description:
-          'Fetch images by username',
+        description: 'Fetch images by username',
       },
     }
   )
@@ -732,10 +820,22 @@ BygApi.use(html())
         })
       } catch (error: unknown) {
         if (error instanceof SearchProxyError) {
+          logger.warn('search.request_rejected', {
+            reason: error.message,
+            statusCode: error.statusCode,
+            query: searchQuery,
+            category,
+            page,
+          })
           set.status = error.statusCode
           return null
         }
 
+        logger.error('search.request_failed', error, {
+          query: searchQuery,
+          category,
+          page,
+        })
         set.status = 502
         return null
       }
@@ -769,10 +869,18 @@ BygApi.use(html())
         return await HeadController.getHeadTags(query.url)
       } catch (error: unknown) {
         if (error instanceof HeadFetchError) {
+          logger.warn('head_tags.request_rejected', {
+            reason: error.message,
+            statusCode: error.statusCode,
+            url: query.url,
+          })
           set.status = error.statusCode
           return null
         }
 
+        logger.error('head_tags.request_failed', error, {
+          url: query.url,
+        })
         set.status = 502
         return null
       }
@@ -808,10 +916,18 @@ BygApi.use(html())
         )
       } catch (error: unknown) {
         if (error instanceof SongLinkFetchError) {
+          logger.warn('song_link.request_rejected', {
+            reason: error.message,
+            statusCode: error.statusCode,
+            url: query.url,
+          })
           set.status = error.statusCode
           return null
         }
 
+        logger.error('song_link.request_failed', error, {
+          url: query.url,
+        })
         set.status = 502
         return null
       }
@@ -1788,10 +1904,32 @@ BygApi.use(html())
 // Start
 if (!isProd) {
   BygApi.listen(2255)
-  console.info(
-    `Elysia is running at http://${BygApi.server?.hostname}:${BygApi.server?.port}`
-  )
+  logger.info('server.started', {
+    environment: 'development',
+    hostname: BygApi.server?.hostname,
+    port: BygApi.server?.port,
+  })
 } else {
   BygApi.listen(3000)
-  console.info('Elysia starting for Prod.')
+  logger.info('server.started', {
+    environment: 'production',
+    hostname: BygApi.server?.hostname,
+    port: BygApi.server?.port,
+  })
 }
+
+process.on('SIGTERM', async () => {
+  logger.info('server.shutdown_requested', {
+    signal: 'SIGTERM',
+  })
+  await shutdownObservability()
+  process.exit(0)
+})
+
+process.on('SIGINT', async () => {
+  logger.info('server.shutdown_requested', {
+    signal: 'SIGINT',
+  })
+  await shutdownObservability()
+  process.exit(0)
+})

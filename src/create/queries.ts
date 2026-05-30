@@ -1,5 +1,6 @@
 import { data } from '@/data/client'
 import { images, posts } from '@/data/tables'
+import { logger } from '@/observability/logger'
 
 export abstract class CreateQueries {
   static async savePost(post: {
@@ -26,9 +27,11 @@ export abstract class CreateQueries {
       }
 
       return postId
-    } catch (e) {
-      console.error(e)
-      throw e
+    } catch (error) {
+      logger.error('post.create_query_failed', error, {
+        authorId: post.authorId,
+      })
+      throw error
     }
   }
 
@@ -44,8 +47,11 @@ export abstract class CreateQueries {
         authorId: image.authorId,
         createdAt: new Date(),
       })
-    } catch (e) {
-      throw e
+    } catch (error) {
+      logger.error('image.create_query_failed', error, {
+        authorId: image.authorId,
+      })
+      throw error
     }
   }
 }

@@ -11,6 +11,7 @@ import {
   sendEmailVerificationEmail,
   verifyTotpCode,
 } from '@/auth/security'
+import { logger } from '@/observability/logger'
 
 const JWT_SECRET: string = process.env.JWT_SECRET ?? 'dev-secret'
 const SESSION_TTL_MS: number = 1000 * 60 * 60 * 24 * 30 // 30 days
@@ -148,7 +149,10 @@ export class AuthController {
         code: emailVerificationCode,
       })
     } catch (error: unknown) {
-      console.error('Failed to send signup verification email', error)
+      logger.error('auth.signup_verification_email_failed', error, {
+        userId: user.id,
+        username: user.username,
+      })
     }
 
     const token: string = await issueSession(user.id)
@@ -314,7 +318,10 @@ export class AuthController {
         code: user.emailVerificationCode,
       })
     } catch (error: unknown) {
-      console.error('Failed to resend verification email', error)
+      logger.error('auth.verification_email_resend_failed', error, {
+        userId,
+        username: user.username,
+      })
       return 500
     }
 

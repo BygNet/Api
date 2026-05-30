@@ -39,6 +39,19 @@ Apply schema:
 bun run db:push
 ```
 
+## PostHog logs
+Structured API logs are emitted locally as JSON and sent to PostHog through
+OpenTelemetry when a project token is configured:
+
+```env
+POSTHOG_PROJECT_TOKEN="phc_..."
+POSTHOG_LOGS_URL="https://us.i.posthog.com/i/v1/logs"
+OTEL_SERVICE_NAME="byg-api"
+```
+
+Use the `phc_` project token from PostHog project settings. Do not use a
+personal `phx_` API key.
+
 ## Migrating existing SQLite data to Postgres
 If you have legacy local data in `data.db`, keep that file and run:
 
