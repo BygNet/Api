@@ -64,12 +64,6 @@ export interface BygNotification {
   createdDate: string
 }
 
-export interface BygAsk {
-  id: number
-  content: string
-  createdDate: string
-}
-
 export type BygSearchCategory =
   | 'web'
   | 'images'

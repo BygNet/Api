@@ -122,6 +122,7 @@ export const asks = pgTable(
     recipientId: integer('recipient_id')
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
+    variantId: text('variant_id').notNull().default('ask'),
     content: text('content').notNull(),
     createdAt: timestamp('created_at', { withTimezone: true })
       .notNull()

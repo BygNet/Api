@@ -1,6 +1,6 @@
 import { ProfileQueries } from '@/profile/queries'
 import { PushService } from '@/push/service'
-import type { BygAsk } from '@/types'
+import type { BygAsk } from '@bygnet/types'
 
 import { AsksQueries } from './queries'
 
@@ -27,7 +27,8 @@ export abstract class AsksController {
 
   static async submitAsk(
     username: string,
-    content: string
+    content: string,
+    variantId?: string
   ): Promise<SubmitAskResult> {
     const trimmedContent = content.trim()
     if (!trimmedContent) {
@@ -39,7 +40,11 @@ export abstract class AsksController {
       return { ok: false, code: 'recipient_not_found' }
     }
 
-    const ask = await AsksQueries.createAsk(recipient.id, trimmedContent)
+    const ask = await AsksQueries.createAsk(
+      recipient.id,
+      trimmedContent,
+      variantId
+    )
 
     await PushService.sendToUser(recipient.id, {
       type: 'ask',

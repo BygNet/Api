@@ -1389,7 +1389,8 @@ BygApi.use(html())
     async ({ body, params, set }) => {
       const result = await AsksController.submitAsk(
         params.username,
-        body.content
+        body.content,
+        body.variantId
       )
 
       if (!result.ok) {

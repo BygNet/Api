@@ -3,7 +3,7 @@ model: environment
 id: ev_HABv4igLHX
 workspaceId: wk_4d6NvbCu5c
 createdAt: 2026-01-11T15:11:34.853019
-updatedAt: 2026-05-10T14:51:12.671327
+updatedAt: 2026-06-08T16:04:02.563022
 name: Dev
 public: true
 base: false
@@ -16,7 +16,11 @@ variables:
   id: iUz9sQ8iCh
 - enabled: true
   name: testToken
-  value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI3Iiwic2lkIjoiMWJkMTc4MTAtMGVhMS00NWUzLWEwZDAtNTAzMjcwMTBjNDc4IiwiaWF0IjoxNzc2MzI4MjExLCJleHAiOjE3Nzg5MjAyMTF9.AdCPswQElUZvnEivkJMWejomYCvqHAsKJoN1QzJ9RYM
+  value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI3Iiwic2lkIjoiOGI2MDg5NDUtNTk2Mi00ZWI5LThjMTktYTQwN2QyMGY2NTViIiwiaWF0IjoxNzgwOTM0NDE3LCJleHAiOjE3ODM1MjY0MTd9.3Qd5P4eeUX0Pjzase2u_JoX5CH83ZmdBwG7gJq1Z5GY
   id: NFndtjThJF
+- enabled: true
+  name: exampleUser
+  value: testers7@byg
+  id: PDhFmxBVkI
 color: var(--primary)
 sortPriority: 0.0

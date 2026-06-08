@@ -2,13 +2,8 @@ import { eq, sql } from 'drizzle-orm'
 
 import { data } from '@/data/client'
 import { asks } from '@/data/tables'
-import type { BygAsk } from '@/types'
-
-type AskRow = {
-  id: number
-  content: string
-  createdAt: Date
-}
+import type { BygAsk } from '@bygnet/types'
+import { BygAskRaw } from '@/types'
 
 function clampLimit(limit: number): number {
   return Math.max(1, Math.min(limit, 100))
@@ -16,9 +11,10 @@ function clampLimit(limit: number): number {
 
 export abstract class AsksQueries {
   static async getUserAsks(userId: number, limit: number): Promise<BygAsk[]> {
-    const rows: AskRow[] = await data
+    const rows: BygAskRaw[] = await data
       .select({
         id: asks.id,
+        variantId: asks.variantId,
         content: asks.content,
         createdAt: asks.createdAt,
       })
@@ -29,6 +25,7 @@ export abstract class AsksQueries {
 
     return rows.map(row => ({
       id: row.id,
+      variantId: row.variantId,
       content: row.content,
       createdDate: row.createdAt.toISOString(),
     }))
@@ -36,16 +33,19 @@ export abstract class AsksQueries {
 
   static async createAsk(
     recipientId: number,
-    content: string
+    content: string,
+    variantId?: string
   ): Promise<BygAsk> {
     const rows = await data
       .insert(asks)
       .values({
         recipientId,
         content,
+        variantId,
       })
       .returning({
         id: asks.id,
+        variantId: asks.variantId,
         content: asks.content,
         createdAt: asks.createdAt,
       })
@@ -57,6 +57,7 @@ export abstract class AsksQueries {
 
     return {
       id: row.id,
+      variantId: row.variantId,
       content: row.content,
       createdDate: row.createdAt.toISOString(),
     }

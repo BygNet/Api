@@ -103,5 +103,6 @@ export type ShortLinkCreateBody = typeof ShortLinkCreateSchema.static
 
 export const AskCreateSchema = t.Object({
   content: t.String(),
+  variantId: t.Optional(t.String()),
 })
 export type AskCreateBody = typeof AskCreateSchema.static
