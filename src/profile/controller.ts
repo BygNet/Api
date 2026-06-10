@@ -62,8 +62,10 @@ export abstract class ProfileController {
       return null
     }
 
-    const followerCount = await ProfileQueries.getFollowerCount(userId)
-    const followingCount = await ProfileQueries.getFollowingCount(userId)
+    const [followerCount, followingCount] = await Promise.all([
+      ProfileQueries.getFollowerCount(userId),
+      ProfileQueries.getFollowingCount(userId),
+    ])
 
     const {
       passHash,
@@ -89,13 +91,13 @@ export abstract class ProfileController {
       return null
     }
 
-    const followerCount = await ProfileQueries.getFollowerCount(user.id)
-    const followingCount = await ProfileQueries.getFollowingCount(user.id)
-
-    let isFollowing = false
-    if (currentUserId) {
-      isFollowing = await ProfileQueries.isFollowing(currentUserId, user.id)
-    }
+    const [followerCount, followingCount, isFollowing] = await Promise.all([
+      ProfileQueries.getFollowerCount(user.id),
+      ProfileQueries.getFollowingCount(user.id),
+      currentUserId
+        ? ProfileQueries.isFollowing(currentUserId, user.id)
+        : Promise.resolve(false),
+    ])
 
     const {
       passHash,
