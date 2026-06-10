@@ -26,12 +26,16 @@ export abstract class ProfileQueries {
 
   static async getUserByUsername(username: string): Promise<BygUserRaw | null> {
     console.time(`getUserByUsername:${username}`)
+    console.time('select1')
+    await data.execute(sql`select 1`)
+    console.timeEnd('select1')
+    console.time('userQuery')
     const user: BygUserRaw[] = await data
       .select()
       .from(users)
       .where(eq(users.username, username))
       .limit(1)
-
+    console.timeEnd('userQuery')
     console.timeEnd(`getUserByUsername:${username}`)
     return user[0] ?? null
   }
