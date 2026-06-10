@@ -151,20 +151,24 @@ export abstract class ProfileQueries {
 
   static async getFollowerCount(userId: number): Promise<number> {
     const result = await data
-      .select()
+      .select({
+        count: sql<number>`count(*)`,
+      })
       .from(followings)
       .where(eq(followings.followingId, userId))
 
-    return result.length
+    return Number(result[0]?.count ?? 0)
   }
 
   static async getFollowingCount(userId: number): Promise<number> {
     const result = await data
-      .select()
+      .select({
+        count: sql<number>`count(*)`,
+      })
       .from(followings)
       .where(eq(followings.followerId, userId))
 
-    return result.length
+    return Number(result[0]?.count ?? 0)
   }
 
   static async isFollowing(
