@@ -13,22 +13,26 @@ interface MentionTargetUser {
 
 export abstract class ProfileQueries {
   static async getUserProfile(userId: number): Promise<BygUserRaw | null> {
+    console.time(`getUserProfile:${userId}`)
     const user: BygUserRaw[] = await data
       .select()
       .from(users)
       .where(eq(users.id, userId))
       .limit(1)
 
+    console.timeEnd(`getUserProfile:${userId}`)
     return user[0] ?? null
   }
 
   static async getUserByUsername(username: string): Promise<BygUserRaw | null> {
+    console.time(`getUserByUsername:${username}`)
     const user: BygUserRaw[] = await data
       .select()
       .from(users)
       .where(eq(users.username, username))
       .limit(1)
 
+    console.timeEnd(`getUserByUsername:${username}`)
     return user[0] ?? null
   }
 
@@ -150,6 +154,7 @@ export abstract class ProfileQueries {
   }
 
   static async getFollowerCount(userId: number): Promise<number> {
+    console.time(`getFollowerCount:${userId}`)
     const result = await data
       .select({
         count: sql<number>`count(*)`,
@@ -157,10 +162,12 @@ export abstract class ProfileQueries {
       .from(followings)
       .where(eq(followings.followingId, userId))
 
+    console.timeEnd(`getFollowerCount:${userId}`)
     return Number(result[0]?.count ?? 0)
   }
 
   static async getFollowingCount(userId: number): Promise<number> {
+    console.time(`getFollowingCount:${userId}`)
     const result = await data
       .select({
         count: sql<number>`count(*)`,
@@ -168,6 +175,7 @@ export abstract class ProfileQueries {
       .from(followings)
       .where(eq(followings.followerId, userId))
 
+    console.timeEnd(`getFollowingCount:${userId}`)
     return Number(result[0]?.count ?? 0)
   }
 
@@ -175,6 +183,7 @@ export abstract class ProfileQueries {
     followerId: number,
     followingId: number
   ): Promise<boolean> {
+    console.time(`isFollowing:${followerId}:${followingId}`)
     const result = await data
       .select()
       .from(followings)
@@ -186,6 +195,7 @@ export abstract class ProfileQueries {
       )
       .limit(1)
 
+    console.timeEnd(`isFollowing:${followerId}:${followingId}`)
     return result.length > 0
   }
 }

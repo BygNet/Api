@@ -413,6 +413,9 @@ BygApi.use(html())
       },
     })
   )
+  .get('/ping', () => ({
+    ok: true
+  }))
   // Auth routes
   .post(
     '/auth/signup',
