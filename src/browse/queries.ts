@@ -53,6 +53,8 @@ export abstract class BrowseQueries {
   }
 
   static async getPostsByUsername(username: string): Promise<BygPost[]> {
+    const normalizedUsername = username.trim().toLowerCase()
+
     const rows: PostRow[] = await data
       .select({
         id: posts.id,
@@ -66,7 +68,7 @@ export abstract class BrowseQueries {
       })
       .from(posts)
       .leftJoin(users, eq(posts.authorId, users.id))
-      .where(eq(users.username, username))
+      .where(sql`lower(${users.username}) = ${normalizedUsername}`)
       .orderBy(sql`${posts.id} desc`)
       .limit(100)
 
@@ -128,6 +130,8 @@ export abstract class BrowseQueries {
   }
 
   static async getImagesByUsername(username: string): Promise<BygImage[]> {
+    const normalizedUsername = username.trim().toLowerCase()
+
     const rows: ImageRow[] = await data
       .select({
         id: images.id,
@@ -141,7 +145,7 @@ export abstract class BrowseQueries {
       })
       .from(images)
       .leftJoin(users, eq(images.authorId, users.id))
-      .where(eq(users.username, username))
+      .where(sql`lower(${users.username}) = ${normalizedUsername}`)
       .orderBy(sql`${images.id} desc`)
       .limit(100)
 
