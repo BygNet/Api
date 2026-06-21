@@ -13,30 +13,26 @@ interface MentionTargetUser {
 
 export abstract class ProfileQueries {
   static async getUserProfile(userId: number): Promise<BygUserRaw | null> {
-    console.time(`getUserProfile:${userId}`)
     const user: BygUserRaw[] = await data
       .select()
       .from(users)
       .where(eq(users.id, userId))
       .limit(1)
 
-    console.timeEnd(`getUserProfile:${userId}`)
     return user[0] ?? null
   }
 
-  static async getUserByUsername(username: string): Promise<BygUserRaw | null> {
-    console.time(`getUserByUsername:${username}`)
-    console.time('select1')
-    await data.execute(sql`select 1`)
-    console.timeEnd('select1')
-    console.time('userQuery')
+  static async getUserByUsername(
+    username: string
+  ): Promise<BygUserRaw | null> {
+    const normalizedUsername = username.trim().toLowerCase()
+
     const user: BygUserRaw[] = await data
       .select()
       .from(users)
-      .where(eq(users.username, username))
+      .where(sql`lower(${users.username}) = ${normalizedUsername}`)
       .limit(1)
-    console.timeEnd('userQuery')
-    console.timeEnd(`getUserByUsername:${username}`)
+
     return user[0] ?? null
   }
 
@@ -53,24 +49,27 @@ export abstract class ProfileQueries {
       return []
     }
 
-    const resolvedUsers: MentionTargetUser[] = []
-
-    for (const normalizedUsername of normalizedUsernames) {
-      const user = await data.query.users.findFirst({
-        where: sql`lower(${users.username}) = ${normalizedUsername}`,
+    const resolvedUsers = await data
+      .select({
+        id: users.id,
+        username: users.username,
+        avatarUrl: users.avatarUrl,
+        subscriptionState: users.subscriptionState,
       })
+      .from(users)
+      .where(
+        sql`lower(${users.username}) in (${sql.join(
+          normalizedUsernames.map(username => sql`${username}`),
+          sql`, `
+        )})`
+      )
 
-      if (!user) continue
-
-      resolvedUsers.push({
-        id: user.id,
-        username: user.username,
-        avatarUrl: user.avatarUrl,
-        subscriptionState: user.subscriptionState ?? 'free',
-      })
-    }
-
-    return resolvedUsers
+    return resolvedUsers.map((user: MentionTargetUser) => ({
+      id: user.id,
+      username: user.username,
+      avatarUrl: user.avatarUrl,
+      subscriptionState: user.subscriptionState ?? 'free',
+    }))
   }
 
   static async getUserSuggestionsByPrefix(
@@ -158,7 +157,6 @@ export abstract class ProfileQueries {
   }
 
   static async getFollowerCount(userId: number): Promise<number> {
-    console.time(`getFollowerCount:${userId}`)
     const result = await data
       .select({
         count: sql<number>`count(*)`,
@@ -166,12 +164,10 @@ export abstract class ProfileQueries {
       .from(followings)
       .where(eq(followings.followingId, userId))
 
-    console.timeEnd(`getFollowerCount:${userId}`)
     return Number(result[0]?.count ?? 0)
   }
 
   static async getFollowingCount(userId: number): Promise<number> {
-    console.time(`getFollowingCount:${userId}`)
     const result = await data
       .select({
         count: sql<number>`count(*)`,
@@ -179,7 +175,6 @@ export abstract class ProfileQueries {
       .from(followings)
       .where(eq(followings.followerId, userId))
 
-    console.timeEnd(`getFollowingCount:${userId}`)
     return Number(result[0]?.count ?? 0)
   }
 
@@ -187,7 +182,6 @@ export abstract class ProfileQueries {
     followerId: number,
     followingId: number
   ): Promise<boolean> {
-    console.time(`isFollowing:${followerId}:${followingId}`)
     const result = await data
       .select()
       .from(followings)
@@ -199,7 +193,6 @@ export abstract class ProfileQueries {
       )
       .limit(1)
 
-    console.timeEnd(`isFollowing:${followerId}:${followingId}`)
     return result.length > 0
   }
 }

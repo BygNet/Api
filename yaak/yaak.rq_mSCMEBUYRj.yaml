@@ -2,7 +2,7 @@ type: http_request
 model: http_request
 id: rq_mSCMEBUYRj
 createdAt: 2026-04-02T12:31:11.800709
-updatedAt: 2026-05-09T11:51:06.465114
+updatedAt: 2026-06-21T14:42:45.139436
 workspaceId: wk_4d6NvbCu5c
 folderId: fl_dLLGm635K9
 authentication: {}
@@ -18,9 +18,24 @@ url: ${[ baseUrl ]}/head-tags
 urlParameters:
 - enabled: true
   name: url
-  value: https://song.link/i/1468058171
+  value: https://apple.com
   id: 8kK5b72TvG
 - enabled: true
   name: ''
   value: ''
-  id: YfZWDXqNia
+  id: s8rbT0Bz5i
+settingSendCookies:
+  enabled: false
+  value: true
+settingStoreCookies:
+  enabled: false
+  value: true
+settingValidateCertificates:
+  enabled: false
+  value: true
+settingFollowRedirects:
+  enabled: false
+  value: true
+settingRequestTimeout:
+  enabled: false
+  value: 0
