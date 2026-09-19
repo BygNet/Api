@@ -1,4 +1,4 @@
-import { and, eq, inArray, sql } from 'drizzle-orm'
+import { and, desc, eq, gt, inArray, isNull, ne, or, sql } from 'drizzle-orm'
 
 import { data } from '@/data/client'
 import {
@@ -514,9 +514,16 @@ async function createConversationMembers(
 
 async function buildConversation(
   conversation: ConversationRow,
-  messagesLimit: number
+  messagesLimit: number,
+  afterMessageId?: number
 ): Promise<BygMessageConversation> {
   const boundedLimit = clampLimit(messagesLimit, 1, 250, 120)
+  const messageFilter = afterMessageId
+    ? and(
+        eq(messages.conversationId, conversation.id),
+        gt(messages.id, afterMessageId)
+      )
+    : eq(messages.conversationId, conversation.id)
 
   const rows: MessageRow[] = await data
     .select({
@@ -530,12 +537,12 @@ async function buildConversation(
       createdAt: messages.createdAt,
     })
     .from(messages)
-    .where(eq(messages.conversationId, conversation.id))
-    .orderBy(sql`${messages.id} asc`)
+    .where(messageFilter)
+    .orderBy(desc(messages.id))
     .limit(boundedLimit)
 
   const [hydratedMessages, membersByConversation] = await Promise.all([
-    hydrateMessages(rows),
+    hydrateMessages([...rows].reverse()),
     getMembersByConversationIds([conversation.id]),
   ])
 
@@ -599,7 +606,7 @@ export abstract class MessagesQueries {
     const conversationIds = conversations.map(conversation => conversation.id)
     if (conversationIds.length < 1) return []
 
-    const [latestRows, membersByConversation] = await Promise.all([
+    const [latestRows, membersByConversation, unreadRows] = await Promise.all([
       data
         .select({
           id: messages.id,
@@ -616,6 +623,35 @@ export abstract class MessagesQueries {
         .orderBy(sql`${messages.id} desc`)
         .limit(Math.max(boundedLimit * 10, 120)) as Promise<MessageRow[]>,
       getMembersByConversationIds(conversationIds),
+      data
+        .select({
+          conversationId: messages.conversationId,
+          unreadCount: sql<number>`count(*)::int`,
+        })
+        .from(messages)
+        .innerJoin(
+          messageConversationMembers,
+          and(
+            eq(
+              messageConversationMembers.conversationId,
+              messages.conversationId
+            ),
+            eq(messageConversationMembers.userId, userId)
+          )
+        )
+        .where(
+          and(
+            inArray(messages.conversationId, conversationIds),
+            ne(messages.senderId, userId),
+            or(
+              isNull(messageConversationMembers.lastReadAt),
+              gt(messages.createdAt, messageConversationMembers.lastReadAt)
+            )
+          )
+        )
+        .groupBy(messages.conversationId) as Promise<
+        { conversationId: number; unreadCount: number }[]
+      >,
     ])
 
     const latestByConversation = new Map<number, MessageRow>()
@@ -624,6 +660,10 @@ export abstract class MessagesQueries {
         latestByConversation.set(row.conversationId, row)
       }
     }
+
+    const unreadByConversation = new Map(
+      unreadRows.map(row => [row.conversationId, Number(row.unreadCount)])
+    )
 
     return conversations
       .map(conversation => {
@@ -647,6 +687,7 @@ export abstract class MessagesQueries {
           lastMessageDate: toIso(
             lastMessage?.createdAt ?? conversation.createdAt
           ),
+          unreadCount: unreadByConversation.get(conversation.id) ?? 0,
         } satisfies BygMessageThread
       })
       .sort(
@@ -657,15 +698,33 @@ export abstract class MessagesQueries {
       .slice(0, boundedLimit)
   }
 
+  static async markConversationRead(
+    userId: number,
+    conversationId: number
+  ): Promise<boolean> {
+    const result = await data
+      .update(messageConversationMembers)
+      .set({ lastReadAt: new Date() })
+      .where(
+        and(
+          eq(messageConversationMembers.conversationId, conversationId),
+          eq(messageConversationMembers.userId, userId)
+        )
+      )
+      .returning({ id: messageConversationMembers.id })
+    return result.length > 0
+  }
+
   static async getConversationById(
     userId: number,
     conversationId: number,
-    limit: number
+    limit: number,
+    afterMessageId?: number
   ): Promise<BygMessageConversation | null> {
     const conversation = await getConversationForUser(conversationId, userId)
     if (!conversation) return null
 
-    return await buildConversation(conversation, limit)
+    return await buildConversation(conversation, limit, afterMessageId)
   }
 
   static async getConversationByUsername(

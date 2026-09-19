@@ -18,7 +18,9 @@ type CommentRow = {
 }
 
 interface AddCommentResult {
+  ok: boolean
   targetUserId: number | null
+  commentId: number | null
 }
 
 export abstract class CommentsQueries {
@@ -77,13 +79,19 @@ export abstract class CommentsQueries {
       .where(eq(posts.id, postId))
       .limit(1)
     const targetUserId = postRows[0]?.authorId ?? null
+    if (targetUserId === null) {
+      return { ok: false, targetUserId: null, commentId: null }
+    }
 
-    await data.transaction(async (tx: typeof data) => {
-      await tx.insert(postComments).values({
-        postId,
-        authorId,
-        content,
-      })
+    const inserted = await data.transaction(async (tx: typeof data) => {
+      const rows = await tx
+        .insert(postComments)
+        .values({
+          postId,
+          authorId,
+          content,
+        })
+        .returning({ id: postComments.id })
 
       await tx
         .update(posts)
@@ -91,9 +99,11 @@ export abstract class CommentsQueries {
           commentCount: sql`${posts.commentCount} + 1`,
         })
         .where(eq(posts.id, postId))
+
+      return rows[0]?.id ?? null
     })
 
-    return { targetUserId }
+    return { ok: inserted !== null, targetUserId, commentId: inserted }
   }
 
   static async addImageComment(
@@ -109,13 +119,19 @@ export abstract class CommentsQueries {
       .where(eq(images.id, imageId))
       .limit(1)
     const targetUserId = imageRows[0]?.authorId ?? null
+    if (targetUserId === null) {
+      return { ok: false, targetUserId: null, commentId: null }
+    }
 
-    await data.transaction(async (tx: typeof data) => {
-      await tx.insert(imageComments).values({
-        imageId,
-        authorId,
-        content,
-      })
+    const inserted = await data.transaction(async (tx: typeof data) => {
+      const rows = await tx
+        .insert(imageComments)
+        .values({
+          imageId,
+          authorId,
+          content,
+        })
+        .returning({ id: imageComments.id })
 
       await tx
         .update(images)
@@ -123,8 +139,10 @@ export abstract class CommentsQueries {
           commentCount: sql`${images.commentCount} + 1`,
         })
         .where(eq(images.id, imageId))
+
+      return rows[0]?.id ?? null
     })
 
-    return { targetUserId }
+    return { ok: inserted !== null, targetUserId, commentId: inserted }
   }
 }

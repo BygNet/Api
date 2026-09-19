@@ -12,6 +12,8 @@ import { LikeController } from '@/like/controller'
 import { CreateController } from '@/create/controller'
 import {
   AskCreateSchema,
+  AuthGrantSchema,
+  ChatNotificationPreferenceSchema,
   CommentSchema,
   MessageSendBody,
   CreatePostSchema,
@@ -29,6 +31,7 @@ import {
   UpdateProfileSchema,
   UploadImageSchema,
   VerifyEmailSchema,
+  SessionExpirySchema,
 } from '@/schemas'
 import { isProd } from '@/data/client'
 import { cors } from '@elysiajs/cors'
@@ -38,6 +41,7 @@ import { CommentsController } from '@/comments/controller'
 import { AsksController } from '@/asks/controller'
 import { ProfileController } from '@/profile/controller'
 import { NotificationsController } from '@/notifications/controller'
+import { NotificationService } from '@/notifications/service'
 import { PushService } from '@/push/service'
 import { MessagesController } from '@/messages/controller'
 import { MessagesRealtimeService } from '@/messages/realtime'
@@ -206,6 +210,12 @@ const writePathPrefixes: string[] = [
   '/auth/resend-email-verification',
   '/auth/2fa/enable',
   '/auth/2fa/disable',
+  '/auth/grants',
+  '/auth/exchange',
+  '/auth/sessions',
+  '/notifications/preferences',
+  '/notifications/read-all',
+  '/messages/conversations/',
 ]
 
 const JWT_SECRET = process.env.JWT_SECRET ?? 'dev-secret'
@@ -323,10 +333,19 @@ BygApi.derive(
 
       if (
         !session ||
-        session.expiresAt.getTime() < Date.now()
+        (session.expiresAt !== null &&
+          session.expiresAt.getTime() < Date.now())
       ) {
         return { userId: null }
       }
+
+      // Keep the session inventory useful without making callers explicitly
+      // manage a last-used timestamp. This is intentionally fire-and-forget
+      // so auth never waits on a bookkeeping write.
+      void data
+        .update(sessions)
+        .set({ lastUsedAt: new Date() })
+        .where(eq(sessions.id, payload.sid))
 
       return { userId: Number(payload.sub) }
     } catch {
@@ -347,6 +366,8 @@ BygApi.use(html())
         'https://byg.gg', // Byg
         'https://share.byg.gg', // Byg Share
         'https://asks.byg.gg', // Byg Asks
+        'https://chat.byg.gg', // Byg Chat
+        'http://localhost:2259', // Byg Chat dev
         'https://byg.a35.dev', // Legacy Byg
       ],
       credentials: true,
@@ -414,15 +435,16 @@ BygApi.use(html())
     })
   )
   .get('/ping', () => ({
-    ok: true
+    ok: true,
   }))
   // Auth routes
   .post(
     '/auth/signup',
-    async ({ body, set }) => {
+    async ({ body, set, request }) => {
       const result = await AuthController.signup(
         body as any,
-        set
+        set,
+        request
       )
       return result ?? null
     },
@@ -446,10 +468,11 @@ BygApi.use(html())
   )
   .post(
     '/auth/login',
-    async ({ body, set }) => {
+    async ({ body, set, request }) => {
       const result = await AuthController.login(
         body as any,
-        set
+        set,
+        request
       )
       return result ?? null
     },
@@ -506,6 +529,138 @@ BygApi.use(html())
       detail: {
         tags: ['Auth'],
         description: 'Get the currently authenticated user',
+      },
+    }
+  )
+  .post(
+    '/auth/grants',
+    async ({ body, userId, set }) => {
+      if (!userId) {
+        set.status = 401
+        return null
+      }
+      return await AuthController.createGrant(
+        userId,
+        body.redirectUri,
+        set
+      )
+    },
+    {
+      body: AuthGrantSchema,
+      response: {
+        200: t.Ref('Any'),
+        400: t.Ref('Empty'),
+        401: t.Ref('Empty'),
+      },
+      detail: {
+        tags: ['Auth'],
+        description:
+          'Create a one-time service login grant',
+      },
+    }
+  )
+  .post(
+    '/auth/exchange',
+    async ({ body, request, set }) => {
+      return await AuthController.exchangeGrant(
+        body.code,
+        body.redirectUri,
+        request,
+        set
+      )
+    },
+    {
+      body: t.Object({
+        code: t.String(),
+        redirectUri: t.String(),
+      }),
+      response: {
+        200: t.Ref('AuthSuccess'),
+        400: t.Ref('Empty'),
+        401: t.Ref('Empty'),
+      },
+      detail: {
+        tags: ['Auth'],
+        description:
+          'Exchange a one-time service login grant',
+      },
+    }
+  )
+  .get(
+    '/auth/sessions',
+    async ({ userId, request, set }) => {
+      if (!userId) {
+        set.status = 401
+        return null
+      }
+      return await AuthController.getSessions(
+        userId,
+        request
+      )
+    },
+    {
+      response: {
+        200: t.Ref('AnyArray'),
+        401: t.Ref('Empty'),
+      },
+      detail: {
+        tags: ['Auth'],
+        description:
+          'List active sessions for the current user',
+      },
+    }
+  )
+  .delete(
+    '/auth/sessions/:id',
+    async ({ userId, params, set }) => {
+      if (!userId) {
+        set.status = 401
+        return null
+      }
+      await AuthController.removeSession(
+        userId,
+        params.id,
+        set
+      )
+      return { status: 'ok' }
+    },
+    {
+      response: {
+        200: t.Ref('Status'),
+        401: t.Ref('Empty'),
+        404: t.Ref('Empty'),
+      },
+      detail: {
+        tags: ['Auth'],
+        description: 'Revoke an active session',
+      },
+    }
+  )
+  .patch(
+    '/auth/sessions/:id',
+    async ({ body, userId, params, request, set }) => {
+      if (!userId) {
+        set.status = 401
+        return null
+      }
+      return await AuthController.setSessionExpiry(
+        userId,
+        params.id,
+        body.neverExpire,
+        request,
+        set
+      )
+    },
+    {
+      body: SessionExpirySchema,
+      response: {
+        200: t.Ref('Any'),
+        401: t.Ref('Empty'),
+        404: t.Ref('Empty'),
+      },
+      detail: {
+        tags: ['Auth'],
+        description: 'Change whether a session expires',
       },
     }
   )
@@ -1198,6 +1353,7 @@ BygApi.use(html())
         200: t.Ref('Empty'),
         400: t.Ref('Empty'),
         401: t.Ref('Empty'),
+        404: t.Ref('Empty'),
         500: t.Ref('Empty'),
       },
       detail: {
@@ -1243,6 +1399,7 @@ BygApi.use(html())
         200: t.Ref('Empty'),
         400: t.Ref('Empty'),
         401: t.Ref('Empty'),
+        404: t.Ref('Empty'),
         500: t.Ref('Empty'),
       },
       detail: {
@@ -1354,6 +1511,72 @@ BygApi.use(html())
         tags: ['Notifications'],
         description:
           'Get recent notifications for the authenticated user',
+      },
+    }
+  )
+  .get(
+    '/notifications/preferences',
+    async ({ userId, set }) => {
+      if (!userId) {
+        set.status = 401
+        return null
+      }
+      return {
+        chatNotificationsEnabled:
+          await NotificationService.chatNotificationsEnabled(
+            userId
+          ),
+      }
+    },
+    {
+      response: { 200: t.Ref('Any'), 401: t.Ref('Empty') },
+      detail: {
+        tags: ['Notifications'],
+        description: 'Get notification preferences',
+      },
+    }
+  )
+  .put(
+    '/notifications/preferences/chat',
+    async ({ body, userId, set }) => {
+      if (!userId) {
+        set.status = 401
+        return null
+      }
+      await NotificationService.setChatNotificationsEnabled(
+        userId,
+        body.enabled
+      )
+      return { chatNotificationsEnabled: body.enabled }
+    },
+    {
+      body: ChatNotificationPreferenceSchema,
+      response: { 200: t.Ref('Any'), 401: t.Ref('Empty') },
+      detail: {
+        tags: ['Notifications'],
+        description:
+          'Set whether chat owns message notifications',
+      },
+    }
+  )
+  .post(
+    '/notifications/read-all',
+    async ({ userId, set }) => {
+      if (!userId) {
+        set.status = 401
+        return null
+      }
+      await NotificationService.markAllRead(userId)
+      return { status: 'ok' }
+    },
+    {
+      response: {
+        200: t.Ref('Status'),
+        401: t.Ref('Empty'),
+      },
+      detail: {
+        tags: ['Notifications'],
+        description: 'Mark all notifications as read',
       },
     }
   )
@@ -1475,11 +1698,19 @@ BygApi.use(html())
       const limit = Number.isFinite(rawLimit)
         ? rawLimit
         : 120
+      const rawAfter = query.after
+        ? Number(query.after)
+        : undefined
+      const afterMessageId =
+        rawAfter !== undefined && Number.isFinite(rawAfter)
+          ? Math.trunc(rawAfter)
+          : undefined
       const conversation =
         await MessagesController.getConversation(
           userId,
           conversationId,
-          limit
+          limit,
+          afterMessageId
         )
 
       if (!conversation) {
@@ -1492,6 +1723,7 @@ BygApi.use(html())
     {
       query: t.Object({
         limit: t.Optional(t.String()),
+        after: t.Optional(t.String()),
       }),
       response: {
         200: t.Ref('Any'),
@@ -1503,6 +1735,37 @@ BygApi.use(html())
         tags: ['Messages'],
         description:
           'Get conversation messages by conversation id',
+      },
+    }
+  )
+  .post(
+    '/messages/conversations/:conversationId/read',
+    async ({ userId, params, set }) => {
+      if (!userId) {
+        set.status = 401
+        return null
+      }
+      const conversationId = Number(params.conversationId)
+      if (!Number.isFinite(conversationId)) {
+        set.status = 400
+        return null
+      }
+      return await MessagesController.markConversationRead(
+        userId,
+        conversationId,
+        set
+      )
+    },
+    {
+      response: {
+        200: t.Ref('Status'),
+        400: t.Ref('Empty'),
+        401: t.Ref('Empty'),
+        404: t.Ref('Empty'),
+      },
+      detail: {
+        tags: ['Messages'],
+        description: 'Mark a conversation as read',
       },
     }
   )

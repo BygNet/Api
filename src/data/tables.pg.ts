@@ -8,6 +8,7 @@ import {
   text,
   uuid,
   timestamp,
+  boolean,
 } from 'drizzle-orm/pg-core'
 import { sql } from 'drizzle-orm'
 
@@ -39,9 +40,30 @@ export const sessions = pgTable('sessions', {
   userId: integer('user_id')
     .notNull()
     .references(() => users.id, { onDelete: 'cascade' }),
+  createdAt: timestamp('created_at', { withTimezone: true })
+    .notNull()
+    .defaultNow(),
   expiresAt: timestamp('expires_at', {
     withTimezone: true,
-  }).notNull(),
+  }),
+  ipAddress: text('ip_address'),
+  countryCode: text('country_code'),
+  countryName: text('country_name'),
+  userAgent: text('user_agent'),
+  deviceLabel: text('device_label'),
+  lastUsedAt: timestamp('last_used_at', { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+})
+
+export const authGrants = pgTable('auth_grants', {
+  code: uuid('code').primaryKey(),
+  userId: integer('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  redirectUri: text('redirect_uri').notNull(),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  usedAt: timestamp('used_at', { withTimezone: true }),
 })
 
 export const posts = pgTable('posts', {
@@ -131,6 +153,46 @@ export const asks = pgTable(
   table => [index('asks_recipient_id_idx').on(table.recipientId)]
 )
 
+export const notificationPreferences = pgTable('notification_preferences', {
+  userId: integer('user_id')
+    .primaryKey()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  chatNotificationsEnabled: boolean('chat_notifications_enabled')
+    .notNull()
+    .default(true),
+  updatedAt: timestamp('updated_at', { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+})
+
+export const notifications = pgTable(
+  'notifications',
+  {
+    id: serial('id').primaryKey(),
+    recipientId: integer('recipient_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    actorId: integer('actor_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+    type: text('type').notNull(),
+    title: text('title').notNull(),
+    body: text('body').notNull(),
+    path: text('path').notNull(),
+    dedupeKey: text('dedupe_key').notNull().unique(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    readAt: timestamp('read_at', { withTimezone: true }),
+  },
+  table => [
+    index('notifications_recipient_created_idx').on(
+      table.recipientId,
+      table.createdAt
+    ),
+  ]
+)
+
 export const messageConversations = pgTable(
   'message_conversations',
   {
@@ -171,6 +233,7 @@ export const messageConversationMembers = pgTable(
     invitedById: integer('invited_by_id').references(() => users.id, {
       onDelete: 'set null',
     }),
+    lastReadAt: timestamp('last_read_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true })
       .notNull()
       .defaultNow(),

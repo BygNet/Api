@@ -1,6 +1,6 @@
 import { data } from '@/data/client'
-import { sessions, users } from '@/data/tables'
-import { eq, sql } from 'drizzle-orm'
+import { authGrants, sessions, users } from '@/data/tables'
+import { and, eq, gt, isNull, sql, type InferSelectModel } from 'drizzle-orm'
 import argon2 from 'argon2'
 import jwt from 'jsonwebtoken'
 import {
@@ -15,6 +15,7 @@ import { logger } from '@/observability/logger'
 
 const JWT_SECRET: string = process.env.JWT_SECRET ?? 'dev-secret'
 const SESSION_TTL_MS: number = 1000 * 60 * 60 * 24 * 30 // 30 days
+const AUTH_GRANT_TTL_MS = 1000 * 60 * 5
 
 type SignupBody = {
   email: string
@@ -27,6 +28,19 @@ type LoginBody = {
   password: string
   twoFactorCode?: string
 }
+
+export interface SessionSummary {
+  id: string
+  createdAt: string
+  lastUsedAt: string
+  expiresAt: string | null
+  ipAddress: string | null
+  countryCode: string | null
+  countryName: string | null
+  deviceLabel: string | null
+}
+
+type SessionRow = InferSelectModel<typeof sessions>
 
 interface PublicUser {
   id: number
@@ -47,14 +61,126 @@ interface LoginTwoFactorChallenge {
   requiresTwoFactor: true
 }
 
-async function issueSession(userId: number): Promise<string> {
+function getClientIp(request: Request): string | null {
+  // Cloudflare
+  const cfConnectingIp = request.headers.get('cf-connecting-ip')
+  if (cfConnectingIp) {
+    return cfConnectingIp.trim()
+  }
+
+  // Standard reverse proxy header
+  const forwarded = request.headers.get('x-forwarded-for')
+  if (forwarded) {
+    const candidate = forwarded.split(',')[0]?.trim()
+    if (candidate) return candidate
+  }
+
+  // Other common proxy
+  const realIp = request.headers.get('x-real-ip')
+  if (realIp) {
+    return realIp.trim()
+  }
+
+  return null
+}
+
+function getDeviceLabel(userAgent: string | null): string {
+  const value = userAgent ?? ''
+  const browser = /Edg\//.test(value)
+    ? 'Edge'
+    : /Chrome\//.test(value)
+      ? 'Chrome'
+      : /Firefox\//.test(value)
+        ? 'Firefox'
+        : /Safari\//.test(value) && !/Chrome\//.test(value)
+          ? 'Safari'
+          : 'Browser'
+  const platform = /iPhone|iPad|iPod/.test(value)
+    ? 'iOS'
+    : /Android/.test(value)
+      ? 'Android'
+      : /Mac OS X/.test(value)
+        ? 'macOS'
+        : /Windows/.test(value)
+          ? 'Windows'
+          : /Linux/.test(value)
+            ? 'Linux'
+            : 'Unknown device'
+  return `${browser} · ${platform}`
+}
+
+async function lookupCountryCode(
+  ipAddress: string | null
+): Promise<string | null> {
+  if (
+    !ipAddress ||
+    /^(127\.0\.0\.1|::1|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(
+      ipAddress
+    )
+  ) {
+    return null
+  }
+
+  const token = process.env.IPINFO_KEY?.trim()
+
+  if (!token) {
+    logger.warn('auth.ipinfo_lookup_skipped', {
+      reason: 'missing_ipinfo_key',
+    })
+    return null
+  }
+
+  try {
+    const response = await fetch(
+      `https://api.ipinfo.io/lite/${encodeURIComponent(ipAddress)}/country_code?token=${encodeURIComponent(token)}`,
+      {
+        signal: AbortSignal.timeout(1500),
+      }
+    )
+
+    if (!response.ok) {
+      logger.warn('auth.ipinfo_lookup_failed', {
+        status: response.status,
+        ipAddress,
+      })
+      return null
+    }
+
+    const countryCode = (await response.text()).trim().toUpperCase()
+
+    return /^[A-Z]{2}$/.test(countryCode) ? countryCode : null
+  } catch (error: unknown) {
+    logger.warn('auth.ipinfo_lookup_error', {
+      error,
+    })
+    return null
+  }
+}
+
+async function issueSession(
+  userId: number,
+  request: Request,
+  options: { neverExpire?: boolean } = {}
+): Promise<string> {
   const sessionId = crypto.randomUUID()
-  const expiresAt = new Date(Date.now() + SESSION_TTL_MS)
+  const expiresAt = options.neverExpire
+    ? null
+    : new Date(Date.now() + SESSION_TTL_MS)
+  const ipAddress = getClientIp(request)
+  const userAgent = request.headers.get('user-agent')
+
+  const countryCode = await lookupCountryCode(ipAddress)
 
   await data.insert(sessions).values({
     id: sessionId,
     userId,
     expiresAt,
+    ipAddress,
+    countryCode,
+    countryName: null,
+    userAgent,
+    deviceLabel: getDeviceLabel(userAgent),
+    lastUsedAt: new Date(),
   })
 
   const payload: jwt.JwtPayload = {
@@ -62,9 +188,9 @@ async function issueSession(userId: number): Promise<string> {
     sid: sessionId,
   }
 
-  return jwt.sign(payload, JWT_SECRET, {
-    expiresIn: '30d',
-  })
+  return options.neverExpire
+    ? jwt.sign(payload, JWT_SECRET)
+    : jwt.sign(payload, JWT_SECRET, { expiresIn: '30d' })
 }
 
 function publicUser(user: {
@@ -100,7 +226,8 @@ function publicUser(user: {
 export class AuthController {
   static async signup(
     body: SignupBody,
-    set: any
+    set: any,
+    request: Request
   ): Promise<{ token: string; user: PublicUser } | void> {
     const { email, username, password } = body
 
@@ -155,7 +282,7 @@ export class AuthController {
       })
     }
 
-    const token: string = await issueSession(user.id)
+    const token: string = await issueSession(user.id, request)
 
     return {
       token,
@@ -165,7 +292,8 @@ export class AuthController {
 
   static async login(
     body: LoginBody,
-    set: any
+    set: any,
+    request: Request
   ): Promise<
     { token: string; user: PublicUser } | LoginTwoFactorChallenge | void
   > {
@@ -204,7 +332,7 @@ export class AuthController {
       }
     }
 
-    const token: string = await issueSession(user.id)
+    const token: string = await issueSession(user.id, request)
 
     return {
       token,
@@ -247,7 +375,10 @@ export class AuthController {
         where: eq(sessions.id, payload.sid),
       })
 
-      if (!session || session.expiresAt.getTime() < Date.now()) {
+      if (
+        !session ||
+        (session.expiresAt !== null && session.expiresAt.getTime() < Date.now())
+      ) {
         set.status = 401
         return
       }
@@ -402,5 +533,174 @@ export class AuthController {
 
   static async hash(pass: string): Promise<string> {
     return await argon2.hash(pass)
+  }
+
+  static async createGrant(
+    userId: number,
+    redirectUri: string,
+    set: any
+  ): Promise<{ code: string; redirectUri: string } | null> {
+    if (!isAllowedRedirectUri(redirectUri)) {
+      set.status = 400
+      return null
+    }
+
+    const code = crypto.randomUUID()
+    await data.insert(authGrants).values({
+      code,
+      userId,
+      redirectUri,
+      expiresAt: new Date(Date.now() + AUTH_GRANT_TTL_MS),
+    })
+    return { code, redirectUri }
+  }
+
+  static async exchangeGrant(
+    code: string,
+    redirectUri: string,
+    request: Request,
+    set: any
+  ): Promise<{ token: string; user: PublicUser } | null> {
+    if (!isAllowedRedirectUri(redirectUri)) {
+      set.status = 400
+      return null
+    }
+
+    const grant = await data.query.authGrants.findFirst({
+      where: and(
+        eq(authGrants.code, code),
+        eq(authGrants.redirectUri, redirectUri),
+        isNull(authGrants.usedAt),
+        gt(authGrants.expiresAt, new Date())
+      ),
+    })
+
+    if (!grant) {
+      set.status = 400
+      return null
+    }
+
+    await data
+      .update(authGrants)
+      .set({ usedAt: new Date() })
+      .where(eq(authGrants.code, code))
+
+    const user = await data.query.users.findFirst({
+      where: eq(users.id, grant.userId),
+    })
+
+    if (!user) {
+      set.status = 401
+      return null
+    }
+
+    return {
+      token: await issueSession(user.id, request),
+      user: publicUser(user),
+    }
+  }
+
+  static async getSessions(
+    userId: number,
+    request: Request
+  ): Promise<(SessionSummary & { current: boolean })[]> {
+    const currentSessionId = getSessionId(request)
+    const rows = await data
+      .select()
+      .from(sessions)
+      .where(eq(sessions.userId, userId))
+      .orderBy(sql`${sessions.lastUsedAt} desc`)
+
+    return (rows as SessionRow[]).map((row: SessionRow) => ({
+      id: row.id,
+      createdAt: row.createdAt.toISOString(),
+      lastUsedAt: row.lastUsedAt.toISOString(),
+      expiresAt: row.expiresAt?.toISOString() ?? null,
+      ipAddress: row.ipAddress,
+      countryCode: row.countryCode,
+      countryName: row.countryName,
+      deviceLabel: row.deviceLabel,
+      current: row.id === currentSessionId,
+    }))
+  }
+
+  static async removeSession(
+    userId: number,
+    sessionId: string,
+    set: any
+  ): Promise<void> {
+    const rows = await data
+      .delete(sessions)
+      .where(and(eq(sessions.id, sessionId), eq(sessions.userId, userId)))
+      .returning({ id: sessions.id })
+    if (rows.length < 1) set.status = 404
+  }
+
+  static async setSessionExpiry(
+    userId: number,
+    sessionId: string,
+    neverExpire: boolean,
+    request: Request,
+    set: any
+  ): Promise<{ token?: string; expiresAt: string | null } | null> {
+    const expiresAt = neverExpire ? null : new Date(Date.now() + SESSION_TTL_MS)
+    const rows = await data
+      .update(sessions)
+      .set({ expiresAt, lastUsedAt: new Date() })
+      .where(and(eq(sessions.id, sessionId), eq(sessions.userId, userId)))
+      .returning({ id: sessions.id })
+    if (rows.length < 1) {
+      set.status = 404
+      return null
+    }
+
+    return {
+      expiresAt: expiresAt?.toISOString() ?? null,
+      ...(sessionId === getSessionId(request)
+        ? { token: await issueReplacementToken(userId, sessionId, neverExpire) }
+        : {}),
+    }
+  }
+}
+
+function getSessionId(request: Request): string | null {
+  const authorization = request.headers.get('authorization')
+  if (!authorization) return null
+  try {
+    const payload = jwt.verify(
+      authorization.replace(/^Bearer\s+/i, ''),
+      JWT_SECRET
+    ) as jwt.JwtPayload
+    return typeof payload.sid === 'string' ? payload.sid : null
+  } catch {
+    return null
+  }
+}
+
+async function issueReplacementToken(
+  userId: number,
+  sessionId: string,
+  neverExpire: boolean
+): Promise<string> {
+  const payload: jwt.JwtPayload = { sub: userId.toString(), sid: sessionId }
+  return neverExpire
+    ? jwt.sign(payload, JWT_SECRET)
+    : jwt.sign(payload, JWT_SECRET, { expiresIn: '30d' })
+}
+
+export function isAllowedRedirectUri(value: string): boolean {
+  try {
+    const url = new URL(value)
+    const configured = (process.env.AUTH_REDIRECT_URIS ?? '')
+      .split(',')
+      .map(item => item.trim())
+      .filter(Boolean)
+    const defaults = [
+      'https://chat.byg.gg/auth/callback',
+      'http://localhost:2259/auth/callback',
+    ]
+    return [...defaults, ...configured].includes(url.toString())
+  } catch {
+    return false
   }
 }

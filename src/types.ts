@@ -8,6 +8,7 @@ import {
   messageConversations,
   messageConversationMembers,
   messages,
+  notifications,
   users,
 } from '@/data/tables'
 
@@ -25,11 +26,13 @@ export type BygMessageConversationMemberRaw = InferSelectModel<
   typeof messageConversationMembers
 >
 export type BygMessageRaw = InferSelectModel<typeof messages>
+export type BygNotificationRaw = InferSelectModel<typeof notifications>
 
 // ---- API / frontend-facing models ----
 export type BygPost = Omit<BygPostRaw, 'authorId' | 'createdAt'> & {
   author: string
   createdDate: string
+  readAt?: string | null
 }
 
 export type BygImage = Omit<BygImageRaw, 'authorId' | 'createdAt'> & {
@@ -60,6 +63,7 @@ export interface BygNotification {
   actorAvatarUrl: string | null
   actorSubscriptionState: string
   text: string
+  title?: string
   path: string
   createdDate: string
 }
@@ -168,6 +172,7 @@ export interface BygMessageThread {
   members: BygMessageConversationMember[]
   lastMessagePreview: string
   lastMessageDate: string
+  unreadCount: number
 }
 
 export interface BygMessageConversation {
@@ -200,4 +205,8 @@ export interface BygLiveTypingEvent {
   fromUserId: number
   fromUsername: string
   isTyping: boolean
+}
+
+export interface BygLiveNotificationEvent {
+  type: 'notification:new'
 }

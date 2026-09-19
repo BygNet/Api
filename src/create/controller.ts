@@ -4,6 +4,7 @@ import { ProfileQueries } from '@/profile/queries'
 import { PushService } from '@/push/service'
 import { extractMentionUsernames } from '@/utils/mentions'
 import { logger } from '@/observability/logger'
+import { NotificationService } from '@/notifications/service'
 
 function shortenText(value: string): string {
   const trimmed = value.trim()
@@ -31,17 +32,25 @@ export abstract class CreateController {
       await Promise.all(
         mentionTargets
           .filter(target => target.id !== userId)
-          .map(target =>
-            PushService.sendToUser(target.id, {
+          .map(async target => {
+            const body = `${actor.username} mentioned you: ${shortenText(post.content)}`
+            await NotificationService.create({
+              recipientId: target.id,
+              actorId: userId,
               type: 'post_mention',
               title: 'You were mentioned in a post',
-              body: `${actor.username} mentioned you: ${shortenText(
-                post.content
-              )}`,
+              body,
+              path: `/details/${postId}`,
+              dedupeKey: `post-mention-${postId}-${target.id}`,
+            })
+            await PushService.sendToUser(target.id, {
+              type: 'post_mention',
+              title: 'You were mentioned in a post',
+              body,
               path: `/details/${postId}`,
               tag: `post-mention-${postId}-${target.id}`,
             })
-          )
+          })
       )
     }
 

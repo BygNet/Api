@@ -1,20 +1,24 @@
 type: http_request
 model: http_request
-id: rq_pvgY8gbnkQ
-createdAt: 2026-01-19T08:49:39.984401
-updatedAt: 2026-09-14T07:45:12.301825
+id: rq_iR6ZYQuG2a
+createdAt: 2026-07-13T12:31:27.590745
+updatedAt: 2026-07-13T12:36:00.222657
 workspaceId: wk_4d6NvbCu5c
-folderId: fl_FeNuxvXCB6
+folderId: fl_XoQABvUkoD
 authentication: {}
 authenticationType: null
 body:
   form:
   - enabled: true
-    id: Ts3bZc4Rpm
-    name: password
-    value: dk-2011
+    id: GjJQWj6Uy6
+    name: content
+    value: super test rate me
   - enabled: true
-    id: iZzSDqXnjY
+    id: FFVkzyggMd
+    name: variantId
+    value: rate-me
+  - enabled: true
+    id: X3JFDNMSwf
     name: ''
     value: ''
 bodyType: multipart/form-data
@@ -23,11 +27,11 @@ headers:
 - enabled: true
   name: Content-Type
   value: multipart/form-data
-  id: PEHzcH3IYB
+  id: ZwWVzA8IU7
 method: POST
-name: /hash
+name: /asks/:username
 sortPriority: 0.0
-url: ${[ baseUrl ]}/hash
+url: ${[ baseUrl ]}/asks/${[ exampleUser ]}
 urlParameters: []
 settingSendCookies:
   enabled: false

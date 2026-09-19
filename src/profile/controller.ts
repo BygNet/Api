@@ -2,6 +2,7 @@ import { ProfileQueries } from '@/profile/queries'
 import { PushService } from '@/push/service'
 import { BygUserRaw, BygUserSuggestion } from '@/types'
 import { UpdateProfileBody } from '@/schemas'
+import { NotificationService } from '@/notifications/service'
 
 interface ProfileData {
   user: Omit<
@@ -134,6 +135,15 @@ export abstract class ProfileController {
       const follower = await ProfileQueries.getUserProfile(followerId)
 
       if (follower) {
+        await NotificationService.create({
+          recipientId: followingId,
+          actorId: followerId,
+          type: 'follow',
+          title: 'New follower',
+          body: `${follower.username} followed you`,
+          path: `/u/${follower.username}`,
+          dedupeKey: `follow-${followerId}-${followingId}`,
+        })
         await PushService.sendToUser(followingId, {
           type: 'follow',
           title: 'New follower',

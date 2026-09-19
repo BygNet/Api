@@ -22,9 +22,7 @@ export abstract class ProfileQueries {
     return user[0] ?? null
   }
 
-  static async getUserByUsername(
-    username: string
-  ): Promise<BygUserRaw | null> {
+  static async getUserByUsername(username: string): Promise<BygUserRaw | null> {
     const normalizedUsername = username.trim().toLowerCase()
 
     const user: BygUserRaw[] = await data

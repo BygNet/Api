@@ -5,6 +5,7 @@ import { data } from '@/data/client'
 import { sessions, users } from '@/data/tables'
 import type {
   BygLiveMessageEvent,
+  BygLiveNotificationEvent,
   BygLiveTypingEvent,
   BygMessage,
 } from '@/types'
@@ -136,7 +137,10 @@ async function resolveSocketAuth(token: string): Promise<SocketMeta | null> {
     const session = await data.query.sessions.findFirst({
       where: eq(sessions.id, payload.sid),
     })
-    if (!session || session.expiresAt.getTime() < Date.now()) {
+    if (
+      !session ||
+      (session.expiresAt !== null && session.expiresAt.getTime() < Date.now())
+    ) {
       return null
     }
 
@@ -257,6 +261,13 @@ export abstract class MessagesRealtimeService {
     }
 
     this.sendToUser(payload.toUserId, event)
+  }
+
+  static broadcastNotification(recipientId: number): void {
+    const event: BygLiveNotificationEvent = {
+      type: 'notification:new',
+    }
+    this.sendToUser(recipientId, event)
   }
 
   private static registerSocket(

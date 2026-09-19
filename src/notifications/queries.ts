@@ -1,456 +1,58 @@
-import { and, eq, ne, sql } from 'drizzle-orm'
+import { desc, eq, type InferSelectModel } from 'drizzle-orm'
 
 import { data } from '@/data/client'
-import {
-  asks,
-  followings,
-  imageComments,
-  messageConversationMembers,
-  messages,
-  images,
-  postComments,
-  posts,
-  users,
-} from '@/data/tables'
-import { BygNotification } from '@/types'
-import { extractMentionUsernames } from '@/utils/mentions'
+import { notifications, users } from '@/data/tables'
+import type { BygNotification } from '@/types'
 
-type FollowNotificationRow = {
-  id: number
-  actorUsername: string | null
-  actorAvatarUrl: string | null
-  actorSubscriptionState: string | null
-  createdAt: Date
-}
-
-type PostCommentNotificationRow = {
-  id: number
-  postId: number
-  content: string
-  actorUsername: string | null
-  actorAvatarUrl: string | null
-  actorSubscriptionState: string | null
-  createdAt: Date
-}
-
-type ImageCommentNotificationRow = {
-  id: number
-  imageId: number
-  content: string
-  actorUsername: string | null
-  actorAvatarUrl: string | null
-  actorSubscriptionState: string | null
-  createdAt: Date
-}
-
-type PostMentionNotificationRow = {
-  postId: number
-  content: string
-  actorUsername: string | null
-  actorAvatarUrl: string | null
-  actorSubscriptionState: string | null
-  createdAt: Date
-}
-
-type PostCommentMentionNotificationRow = {
-  commentId: number
-  postId: number
-  content: string
-  actorUsername: string | null
-  actorAvatarUrl: string | null
-  actorSubscriptionState: string | null
-  createdAt: Date
-}
-
-type ImageCommentMentionNotificationRow = {
-  commentId: number
-  imageId: number
-  content: string
-  actorUsername: string | null
-  actorAvatarUrl: string | null
-  actorSubscriptionState: string | null
-  createdAt: Date
-}
-
-type MessageNotificationRow = {
-  id: number
-  conversationId: number
-  content: string
-  sharedPostId: number | null
-  sharedImageId: number | null
-  actorUsername: string | null
-  actorAvatarUrl: string | null
-  actorSubscriptionState: string | null
-  createdAt: Date
-}
-
-type AskNotificationRow = {
-  id: number
-  content: string
-  createdAt: Date
-}
-
-function normalizeSubscription(state: string | null): string {
-  return state ?? 'free'
-}
-
-function summarizeComment(content: string): string {
-  const trimmed = content.trim()
-  if (trimmed.length <= 80) return trimmed
-  return `${trimmed.slice(0, 80)}…`
-}
-
-function summarizeMessageContent(
-  row: Pick<
-    MessageNotificationRow,
-    'content' | 'sharedPostId' | 'sharedImageId'
-  >
-): string {
-  const trimmed = row.content.trim()
-  if (trimmed) {
-    if (trimmed.length <= 80) return trimmed
-    return `${trimmed.slice(0, 80)}…`
-  }
-
-  if (row.sharedPostId) return 'shared a post with you'
-  if (row.sharedImageId) return 'shared an image with you'
-  return 'sent you a message'
-}
-
-function summarizeAskContent(content: string): string {
-  const trimmed = content.trim()
-  if (trimmed.length <= 80) return trimmed
-  return `${trimmed.slice(0, 80)}…`
-}
+type NotificationRow = InferSelectModel<typeof notifications>
 
 export abstract class NotificationsQueries {
   static async getRecentNotifications(
     userId: number,
     limit: number
   ): Promise<BygNotification[]> {
-    const boundedLimit = Math.max(1, Math.min(limit, 100))
-    const mentionCandidateLimit = Math.max(boundedLimit * 12, 120)
-
-    const currentUser = await data
+    const rows = await data
       .select({
-        username: users.username,
+        id: notifications.id,
+        type: notifications.type,
+        title: notifications.title,
+        body: notifications.body,
+        path: notifications.path,
+        createdAt: notifications.createdAt,
+        readAt: notifications.readAt,
+        actorUsername: users.username,
+        actorAvatarUrl: users.avatarUrl,
+        actorSubscriptionState: users.subscriptionState,
       })
-      .from(users)
-      .where(eq(users.id, userId))
-      .limit(1)
+      .from(notifications)
+      .leftJoin(users, eq(notifications.actorId, users.id))
+      .where(eq(notifications.recipientId, userId))
+      .orderBy(desc(notifications.createdAt))
+      .limit(Math.max(1, Math.min(limit, 100)))
 
-    const normalizedCurrentUsername = currentUser[0]?.username?.toLowerCase()
-    if (!normalizedCurrentUsername) {
-      return []
-    }
-
-    const [
-      followRows,
-      postCommentRows,
-      imageCommentRows,
-      postMentionRows,
-      postCommentMentionRows,
-      imageCommentMentionRows,
-      messageRows,
-      askRows,
-    ] = await Promise.all([
-      data
-        .select({
-          id: followings.id,
-          actorUsername: users.username,
-          actorAvatarUrl: users.avatarUrl,
-          actorSubscriptionState: users.subscriptionState,
-          createdAt: followings.createdAt,
-        })
-        .from(followings)
-        .leftJoin(users, eq(followings.followerId, users.id))
-        .where(eq(followings.followingId, userId))
-        .orderBy(sql`${followings.id} desc`)
-        .limit(boundedLimit) as Promise<FollowNotificationRow[]>,
-
-      data
-        .select({
-          id: postComments.id,
-          postId: postComments.postId,
-          content: postComments.content,
-          actorUsername: users.username,
-          actorAvatarUrl: users.avatarUrl,
-          actorSubscriptionState: users.subscriptionState,
-          createdAt: postComments.createdAt,
-        })
-        .from(postComments)
-        .leftJoin(posts, eq(postComments.postId, posts.id))
-        .leftJoin(users, eq(postComments.authorId, users.id))
-        .where(
-          and(eq(posts.authorId, userId), ne(postComments.authorId, userId))
-        )
-        .orderBy(sql`${postComments.id} desc`)
-        .limit(boundedLimit) as Promise<PostCommentNotificationRow[]>,
-
-      data
-        .select({
-          id: imageComments.id,
-          imageId: imageComments.imageId,
-          content: imageComments.content,
-          actorUsername: users.username,
-          actorAvatarUrl: users.avatarUrl,
-          actorSubscriptionState: users.subscriptionState,
-          createdAt: imageComments.createdAt,
-        })
-        .from(imageComments)
-        .leftJoin(images, eq(imageComments.imageId, images.id))
-        .leftJoin(users, eq(imageComments.authorId, users.id))
-        .where(
-          and(eq(images.authorId, userId), ne(imageComments.authorId, userId))
-        )
-        .orderBy(sql`${imageComments.id} desc`)
-        .limit(boundedLimit) as Promise<ImageCommentNotificationRow[]>,
-
-      data
-        .select({
-          postId: posts.id,
-          content: posts.content,
-          actorUsername: users.username,
-          actorAvatarUrl: users.avatarUrl,
-          actorSubscriptionState: users.subscriptionState,
-          createdAt: posts.createdAt,
-        })
-        .from(posts)
-        .leftJoin(users, eq(posts.authorId, users.id))
-        .where(ne(posts.authorId, userId))
-        .orderBy(sql`${posts.id} desc`)
-        .limit(mentionCandidateLimit) as Promise<PostMentionNotificationRow[]>,
-
-      data
-        .select({
-          commentId: postComments.id,
-          postId: postComments.postId,
-          content: postComments.content,
-          actorUsername: users.username,
-          actorAvatarUrl: users.avatarUrl,
-          actorSubscriptionState: users.subscriptionState,
-          createdAt: postComments.createdAt,
-        })
-        .from(postComments)
-        .leftJoin(users, eq(postComments.authorId, users.id))
-        .where(ne(postComments.authorId, userId))
-        .orderBy(sql`${postComments.id} desc`)
-        .limit(mentionCandidateLimit) as Promise<
-        PostCommentMentionNotificationRow[]
-      >,
-
-      data
-        .select({
-          commentId: imageComments.id,
-          imageId: imageComments.imageId,
-          content: imageComments.content,
-          actorUsername: users.username,
-          actorAvatarUrl: users.avatarUrl,
-          actorSubscriptionState: users.subscriptionState,
-          createdAt: imageComments.createdAt,
-        })
-        .from(imageComments)
-        .leftJoin(users, eq(imageComments.authorId, users.id))
-        .where(ne(imageComments.authorId, userId))
-        .orderBy(sql`${imageComments.id} desc`)
-        .limit(mentionCandidateLimit) as Promise<
-        ImageCommentMentionNotificationRow[]
-      >,
-
-      data
-        .select({
-          id: messages.id,
-          conversationId: messages.conversationId,
-          content: messages.content,
-          sharedPostId: messages.sharedPostId,
-          sharedImageId: messages.sharedImageId,
-          actorUsername: users.username,
-          actorAvatarUrl: users.avatarUrl,
-          actorSubscriptionState: users.subscriptionState,
-          createdAt: messages.createdAt,
-        })
-        .from(messages)
-        .innerJoin(
-          messageConversationMembers,
-          eq(messageConversationMembers.conversationId, messages.conversationId)
-        )
-        .leftJoin(users, eq(messages.senderId, users.id))
-        .where(
-          and(
-            eq(messageConversationMembers.userId, userId),
-            ne(messages.senderId, userId)
-          )
-        )
-        .orderBy(sql`${messages.id} desc`)
-        .limit(boundedLimit) as Promise<MessageNotificationRow[]>,
-
-      data
-        .select({
-          id: asks.id,
-          content: asks.content,
-          createdAt: asks.createdAt,
-        })
-        .from(asks)
-        .where(eq(asks.recipientId, userId))
-        .orderBy(sql`${asks.id} desc`)
-        .limit(boundedLimit) as Promise<AskNotificationRow[]>,
-    ])
-
-    const notifications: BygNotification[] = [
-      ...followRows.map(row => {
-        const actorUsername = row.actorUsername ?? 'unknown'
-        const path = actorUsername === 'unknown' ? '/me' : `/u/${actorUsername}`
-
-        return {
-          id: `follow-${row.id}`,
-          type: 'follow' as const,
-          actorUsername,
-          actorAvatarUrl: row.actorAvatarUrl,
-          actorSubscriptionState: normalizeSubscription(
-            row.actorSubscriptionState
-          ),
-          text: `${actorUsername} followed you`,
-          path,
-          createdDate: row.createdAt.toISOString(),
+    return rows.map(
+      (
+        row: Pick<
+          NotificationRow,
+          'id' | 'type' | 'body' | 'path' | 'createdAt' | 'readAt'
+        > & {
+          title: string
+          actorUsername: string | null
+          actorAvatarUrl: string | null
+          actorSubscriptionState: string | null
         }
-      }),
-
-      ...postCommentRows.map(row => {
-        const actorUsername = row.actorUsername ?? 'unknown'
-
-        return {
-          id: `post-comment-${row.id}`,
-          type: 'post_comment' as const,
-          actorUsername,
-          actorAvatarUrl: row.actorAvatarUrl,
-          actorSubscriptionState: normalizeSubscription(
-            row.actorSubscriptionState
-          ),
-          text: `${actorUsername} commented: ${summarizeComment(row.content)}`,
-          path: `/details/${row.postId}`,
-          createdDate: row.createdAt.toISOString(),
-        }
-      }),
-
-      ...imageCommentRows.map(row => {
-        const actorUsername = row.actorUsername ?? 'unknown'
-
-        return {
-          id: `image-comment-${row.id}`,
-          type: 'image_comment' as const,
-          actorUsername,
-          actorAvatarUrl: row.actorAvatarUrl,
-          actorSubscriptionState: normalizeSubscription(
-            row.actorSubscriptionState
-          ),
-          text: `${actorUsername} commented: ${summarizeComment(row.content)}`,
-          path: `/image/${row.imageId}`,
-          createdDate: row.createdAt.toISOString(),
-        }
-      }),
-
-      ...postMentionRows
-        .filter(row =>
-          extractMentionUsernames(row.content).includes(
-            normalizedCurrentUsername
-          )
-        )
-        .map(row => {
-          const actorUsername = row.actorUsername ?? 'unknown'
-
-          return {
-            id: `post-mention-${row.postId}`,
-            type: 'post_mention' as const,
-            actorUsername,
-            actorAvatarUrl: row.actorAvatarUrl,
-            actorSubscriptionState: normalizeSubscription(
-              row.actorSubscriptionState
-            ),
-            text: `${actorUsername} mentioned you in a post`,
-            path: `/details/${row.postId}`,
-            createdDate: row.createdAt.toISOString(),
-          }
-        }),
-
-      ...postCommentMentionRows
-        .filter(row =>
-          extractMentionUsernames(row.content).includes(
-            normalizedCurrentUsername
-          )
-        )
-        .map(row => {
-          const actorUsername = row.actorUsername ?? 'unknown'
-
-          return {
-            id: `post-comment-mention-${row.commentId}`,
-            type: 'comment_mention' as const,
-            actorUsername,
-            actorAvatarUrl: row.actorAvatarUrl,
-            actorSubscriptionState: normalizeSubscription(
-              row.actorSubscriptionState
-            ),
-            text: `${actorUsername} mentioned you in a comment`,
-            path: `/details/${row.postId}`,
-            createdDate: row.createdAt.toISOString(),
-          }
-        }),
-
-      ...imageCommentMentionRows
-        .filter(row =>
-          extractMentionUsernames(row.content).includes(
-            normalizedCurrentUsername
-          )
-        )
-        .map(row => {
-          const actorUsername = row.actorUsername ?? 'unknown'
-
-          return {
-            id: `image-comment-mention-${row.commentId}`,
-            type: 'comment_mention' as const,
-            actorUsername,
-            actorAvatarUrl: row.actorAvatarUrl,
-            actorSubscriptionState: normalizeSubscription(
-              row.actorSubscriptionState
-            ),
-            text: `${actorUsername} mentioned you in a comment`,
-            path: `/image/${row.imageId}`,
-            createdDate: row.createdAt.toISOString(),
-          }
-        }),
-
-      ...messageRows.map(row => {
-        const actorUsername = row.actorUsername ?? 'unknown'
-        return {
-          id: `message-${row.id}`,
-          type: 'message' as const,
-          actorUsername,
-          actorAvatarUrl: row.actorAvatarUrl,
-          actorSubscriptionState: normalizeSubscription(
-            row.actorSubscriptionState
-          ),
-          text: `${actorUsername} ${summarizeMessageContent(row)}`,
-          path: `/messages?conversation=${row.conversationId}`,
-          createdDate: row.createdAt.toISOString(),
-        }
-      }),
-
-      ...askRows.map(row => ({
-        id: `ask-${row.id}`,
-        type: 'ask' as const,
-        actorUsername: 'anonymous',
-        actorAvatarUrl: null,
-        actorSubscriptionState: 'free',
-        text: `Anonymous asked: ${summarizeAskContent(row.content)}`,
-        path: '/asks',
+      ) => ({
+        id: String(row.id),
+        type: row.type as BygNotification['type'],
+        actorUsername: row.actorUsername ?? 'byg',
+        actorAvatarUrl: row.actorAvatarUrl,
+        actorSubscriptionState: row.actorSubscriptionState ?? 'free',
+        text: row.body,
+        path: row.path,
         createdDate: row.createdAt.toISOString(),
-      })),
-    ]
-
-    return notifications
-      .sort(
-        (a, b) =>
-          new Date(b.createdDate).getTime() - new Date(a.createdDate).getTime()
-      )
-      .slice(0, boundedLimit)
+        readAt: row.readAt?.toISOString() ?? null,
+        title: row.title,
+      })
+    )
   }
 }

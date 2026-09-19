@@ -21,6 +21,7 @@ export type CommentBody = typeof CommentSchema.static
 export const PushSubscriptionSchema = t.Object({
   endpoint: t.String(),
   expirationTime: t.Union([t.Number(), t.Null()]),
+  source: t.Optional(t.Union([t.Literal('web'), t.Literal('chat')])),
   keys: t.Object({
     p256dh: t.String(),
     auth: t.String(),
@@ -89,6 +90,22 @@ export const VerifyEmailSchema = t.Object({
   code: t.String(),
 })
 export type VerifyEmailBody = typeof VerifyEmailSchema.static
+
+export const AuthGrantSchema = t.Object({
+  redirectUri: t.String({ minLength: 1, maxLength: 512 }),
+})
+export type AuthGrantBody = typeof AuthGrantSchema.static
+
+export const ChatNotificationPreferenceSchema = t.Object({
+  enabled: t.Boolean(),
+})
+export type ChatNotificationPreferenceBody =
+  typeof ChatNotificationPreferenceSchema.static
+
+export const SessionExpirySchema = t.Object({
+  neverExpire: t.Boolean(),
+})
+export type SessionExpiryBody = typeof SessionExpirySchema.static
 
 export const EnableTwoFactorSchema = t.Object({
   secret: t.String(),

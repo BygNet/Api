@@ -3,6 +3,7 @@ import { PushService } from '@/push/service'
 import type { BygAsk } from '@bygnet/types'
 
 import { AsksQueries } from './queries'
+import { NotificationService } from '@/notifications/service'
 
 type SubmitAskResult =
   | {
@@ -52,6 +53,15 @@ export abstract class AsksController {
       body: summarizeAsk(trimmedContent),
       path: '/asks',
       tag: `ask-${ask.id}`,
+    })
+    await NotificationService.create({
+      recipientId: recipient.id,
+      actorId: null,
+      type: 'ask',
+      title: 'New ask',
+      body: summarizeAsk(trimmedContent),
+      path: '/asks',
+      dedupeKey: `ask-${ask.id}`,
     })
 
     return { ok: true, ask }

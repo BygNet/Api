@@ -15,6 +15,7 @@ import type {
 
 import { MessagesQueries } from './queries'
 import { MessagesRealtimeService } from './realtime'
+import { NotificationService } from '@/notifications/service'
 
 function summarizePushBody(message: BygMessage): string {
   const trimmed = message.content.trim()
@@ -34,6 +35,10 @@ function summarizePushBody(message: BygMessage): string {
   return 'Sent you a message'
 }
 
+function chatUrl(): string {
+  return (process.env.BYG_CHAT_URL ?? 'https://chat.byg.gg').replace(/\/$/, '')
+}
+
 export abstract class MessagesController {
   static async getThreads(
     userId: number,
@@ -45,13 +50,31 @@ export abstract class MessagesController {
   static async getConversation(
     userId: number,
     conversationId: number,
-    limit: number
+    limit: number,
+    afterMessageId?: number
   ): Promise<BygMessageConversation | null> {
     return await MessagesQueries.getConversationById(
       userId,
       conversationId,
-      limit
+      limit,
+      afterMessageId
     )
+  }
+
+  static async markConversationRead(
+    userId: number,
+    conversationId: number,
+    set: any
+  ): Promise<{ status: string } | null> {
+    const didUpdate = await MessagesQueries.markConversationRead(
+      userId,
+      conversationId
+    )
+    if (!didUpdate) {
+      set.status = 404
+      return null
+    }
+    return { status: 'ok' }
   }
 
   static async getConversationByUsername(
@@ -198,13 +221,31 @@ export abstract class MessagesController {
     for (const memberId of result.memberIds) {
       if (memberId === userId) continue
 
-      await PushService.sendToUser(memberId, {
-        type: 'message',
+      const chatNotificationsEnabled =
+        await NotificationService.chatNotificationsEnabled(memberId)
+      const pushPayload = {
+        type: 'message' as const,
         title: `New message from ${message.senderUsername}`,
         body: summarizePushBody(message),
-        path: `/messages?conversation=${message.conversationId}`,
+        path: `${chatUrl()}/?conversation=${message.conversationId}`,
         tag: `message-${message.id}`,
+      }
+
+      await NotificationService.create({
+        recipientId: memberId,
+        actorId: userId,
+        type: pushPayload.type,
+        title: pushPayload.title,
+        body: pushPayload.body,
+        path: pushPayload.path,
+        dedupeKey: `message-${message.id}-${memberId}`,
       })
+
+      await PushService.sendToUser(
+        memberId,
+        pushPayload,
+        chatNotificationsEnabled ? 'chat' : 'web'
+      )
     }
 
     return message
