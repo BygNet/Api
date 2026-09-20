@@ -12,6 +12,7 @@ import {
   verifyTotpCode,
 } from '@/auth/security'
 import { logger } from '@/observability/logger'
+import { UAParser } from 'ua-parser-js'
 
 const JWT_SECRET: string = process.env.JWT_SECRET ?? 'dev-secret'
 const SESSION_TTL_MS: number = 1000 * 60 * 60 * 24 * 30 // 30 days
@@ -85,40 +86,34 @@ function getClientIp(request: Request): string | null {
 }
 
 function getDeviceLabel(userAgent: string | null): string {
-  const value = userAgent ?? ''
-  const browser = /Edg\//.test(value)
-    ? 'Edge'
-    : /Chrome\//.test(value)
-      ? 'Chrome'
-      : /Firefox\//.test(value)
-        ? 'Firefox'
-        : /Safari\//.test(value) && !/Chrome\//.test(value)
-          ? 'Safari'
-          : 'Browser'
-  const platform = /iPhone|iPad|iPod/.test(value)
-    ? 'iOS'
-    : /Android/.test(value)
-      ? 'Android'
-      : /Mac OS X/.test(value)
-        ? 'macOS'
-        : /Windows/.test(value)
-          ? 'Windows'
-          : /Linux/.test(value)
-            ? 'Linux'
-            : 'Unknown device'
-  return `${browser} · ${platform}`
+  if (!userAgent) return 'Unknown device'
+
+  const { browser, os, device } = UAParser(userAgent)
+
+  const browserName = browser.name ?? 'Browser'
+  const osName = os.name ?? 'Unknown OS'
+
+  if (device.model) {
+    return `${browserName} · ${osName} · ${device.model}`
+  }
+
+  return `${browserName} · ${osName}`
 }
 
-async function lookupCountryCode(
-  ipAddress: string | null
-): Promise<string | null> {
+async function lookupCountry(ipAddress: string | null): Promise<{
+  countryCode: string | null
+  countryName: string | null
+}> {
   if (
     !ipAddress ||
     /^(127\.0\.0\.1|::1|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(
       ipAddress
     )
   ) {
-    return null
+    return {
+      countryCode: null,
+      countryName: null,
+    }
   }
 
   const token = process.env.IPINFO_KEY?.trim()
@@ -127,13 +122,20 @@ async function lookupCountryCode(
     logger.warn('auth.ipinfo_lookup_skipped', {
       reason: 'missing_ipinfo_key',
     })
-    return null
+
+    return {
+      countryCode: null,
+      countryName: null,
+    }
   }
 
   try {
     const response = await fetch(
-      `https://api.ipinfo.io/lite/${encodeURIComponent(ipAddress)}/country_code?token=${encodeURIComponent(token)}`,
+      `https://api.ipinfo.io/lite/${encodeURIComponent(ipAddress)}`,
       {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
         signal: AbortSignal.timeout(1500),
       }
     )
@@ -141,19 +143,32 @@ async function lookupCountryCode(
     if (!response.ok) {
       logger.warn('auth.ipinfo_lookup_failed', {
         status: response.status,
-        ipAddress,
       })
-      return null
+
+      return {
+        countryCode: null,
+        countryName: null,
+      }
     }
 
-    const countryCode = (await response.text()).trim().toUpperCase()
+    const body = (await response.json()) as {
+      country_code?: string
+      country?: string
+    }
 
-    return /^[A-Z]{2}$/.test(countryCode) ? countryCode : null
+    return {
+      countryCode: body.country_code?.trim().toUpperCase() ?? null,
+      countryName: body.country?.trim() ?? null,
+    }
   } catch (error: unknown) {
     logger.warn('auth.ipinfo_lookup_error', {
-      error,
+      error: error instanceof Error ? error.message : String(error),
     })
-    return null
+
+    return {
+      countryCode: null,
+      countryName: null,
+    }
   }
 }
 
@@ -166,18 +181,18 @@ async function issueSession(
   const expiresAt = options.neverExpire
     ? null
     : new Date(Date.now() + SESSION_TTL_MS)
+
   const ipAddress = getClientIp(request)
   const userAgent = request.headers.get('user-agent')
-
-  const countryCode = await lookupCountryCode(ipAddress)
+  const country = await lookupCountry(ipAddress)
 
   await data.insert(sessions).values({
     id: sessionId,
     userId,
     expiresAt,
     ipAddress,
-    countryCode,
-    countryName: null,
+    countryCode: country.countryCode,
+    countryName: country.countryName,
     userAgent,
     deviceLabel: getDeviceLabel(userAgent),
     lastUsedAt: new Date(),
@@ -232,6 +247,11 @@ export class AuthController {
     const { email, username, password } = body
 
     if (!email || !username || !password) {
+      set.status = 400
+      return
+    }
+
+    if (/\s/u.test(username)) {
       set.status = 400
       return
     }
