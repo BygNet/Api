@@ -715,11 +715,7 @@ export function isAllowedRedirectUri(value: string): boolean {
       .split(',')
       .map(item => item.trim())
       .filter(Boolean)
-    const defaults = [
-      'https://chat.byg.gg/auth/callback',
-      'http://localhost:2259/auth/callback',
-    ]
-    return [...defaults, ...configured].includes(url.toString())
+    return configured.includes(url.toString())
   } catch {
     return false
   }

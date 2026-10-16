@@ -32,7 +32,14 @@ type MessageRow = {
   content: string
   sharedPostId: number | null
   sharedImageId: number | null
+  replyToMessageId: number | null
   createdAt: Date
+}
+
+type MessageReplyPreview = {
+  id: number
+  senderUsername: string
+  content: string
 }
 
 type ConversationRow = {
@@ -63,6 +70,7 @@ export type SendMessageErrorCode =
   | 'not_conversation_member'
   | 'post_not_found'
   | 'image_not_found'
+  | 'invalid_reply'
   | 'save_failed'
 
 export type ConversationMutationErrorCode =
@@ -103,6 +111,7 @@ interface SendMessageInput {
   content?: string
   sharedPostId?: number
   sharedImageId?: number
+  replyToMessageId?: number
 }
 
 function normalizeSubscription(state: string | null | undefined): string {
@@ -153,7 +162,8 @@ function mapMessageRows(
   rows: MessageRow[],
   usersById: Map<number, UserMeta>,
   sharedPosts: Map<number, BygMessageSharedPost>,
-  sharedImages: Map<number, BygMessageSharedImage>
+  sharedImages: Map<number, BygMessageSharedImage>,
+  replies: Map<number, MessageReplyPreview>
 ): BygMessage[] {
   return rows.map(row => {
     const sender = usersById.get(row.senderId)
@@ -177,6 +187,10 @@ function mapMessageRows(
         : null,
       sharedImage: row.sharedImageId
         ? (sharedImages.get(row.sharedImageId) ?? null)
+        : null,
+      replyToMessageId: row.replyToMessageId,
+      replyTo: row.replyToMessageId
+        ? (replies.get(row.replyToMessageId) ?? null)
         : null,
     }
   })
@@ -313,7 +327,10 @@ async function hydrateMessages(rows: MessageRow[]): Promise<BygMessage[]> {
     row.recipientId ? [row.senderId, row.recipientId] : [row.senderId]
   )
 
-  const [usersById, sharedPosts, sharedImages] = await Promise.all([
+  const replyIds = rows
+    .map(row => row.replyToMessageId)
+    .filter((id): id is number => id !== null)
+  const [usersById, sharedPosts, sharedImages, replies] = await Promise.all([
     getUsersByIdMap(userIds),
     getSharedPostsById(
       rows
@@ -325,9 +342,38 @@ async function hydrateMessages(rows: MessageRow[]): Promise<BygMessage[]> {
         .map(row => row.sharedImageId)
         .filter((id): id is number => id !== null)
     ),
+    getReplyPreviewsById(replyIds),
   ])
 
-  return mapMessageRows(rows, usersById, sharedPosts, sharedImages)
+  return mapMessageRows(rows, usersById, sharedPosts, sharedImages, replies)
+}
+
+async function getReplyPreviewsById(
+  messageIds: number[]
+): Promise<Map<number, MessageReplyPreview>> {
+  const ids = uniqueIds(messageIds)
+  if (ids.length < 1) return new Map()
+
+  const rows = await data
+    .select({
+      id: messages.id,
+      senderUsername: users.username,
+      content: messages.content,
+    })
+    .from(messages)
+    .innerJoin(users, eq(messages.senderId, users.id))
+    .where(inArray(messages.id, ids))
+
+  return new Map(
+    rows.map((row: { id: number; senderUsername: string; content: string }) => [
+      row.id,
+      {
+        id: row.id,
+        senderUsername: row.senderUsername,
+        content: row.content,
+      },
+    ])
+  )
 }
 
 async function getConversationRowsForUser(
@@ -515,15 +561,21 @@ async function createConversationMembers(
 async function buildConversation(
   conversation: ConversationRow,
   messagesLimit: number,
-  afterMessageId?: number
+  afterMessageId?: number,
+  beforeMessageId?: number
 ): Promise<BygMessageConversation> {
   const boundedLimit = clampLimit(messagesLimit, 1, 250, 120)
-  const messageFilter = afterMessageId
+  const messageFilter = beforeMessageId
     ? and(
         eq(messages.conversationId, conversation.id),
-        gt(messages.id, afterMessageId)
+        sql`${messages.id} < ${beforeMessageId}`
       )
-    : eq(messages.conversationId, conversation.id)
+    : afterMessageId
+      ? and(
+          eq(messages.conversationId, conversation.id),
+          gt(messages.id, afterMessageId)
+        )
+      : eq(messages.conversationId, conversation.id)
 
   const rows: MessageRow[] = await data
     .select({
@@ -534,15 +586,19 @@ async function buildConversation(
       content: messages.content,
       sharedPostId: messages.sharedPostId,
       sharedImageId: messages.sharedImageId,
+      replyToMessageId: messages.replyToMessageId,
       createdAt: messages.createdAt,
     })
     .from(messages)
     .where(messageFilter)
     .orderBy(desc(messages.id))
-    .limit(boundedLimit)
+    .limit(boundedLimit + 1)
+
+  const hasOlder = rows.length > boundedLimit
+  const pageRows = rows.slice(0, boundedLimit)
 
   const [hydratedMessages, membersByConversation] = await Promise.all([
-    hydrateMessages([...rows].reverse()),
+    hydrateMessages([...pageRows].reverse()),
     getMembersByConversationIds([conversation.id]),
   ])
 
@@ -556,6 +612,12 @@ async function buildConversation(
     creatorId: conversation.creatorId,
     members: membersByConversation.get(conversation.id) ?? [],
     messages: hydratedMessages,
+    pagination: {
+      hasOlder,
+      oldestMessageId: hydratedMessages[0]?.id ?? null,
+      newestMessageId:
+        hydratedMessages[hydratedMessages.length - 1]?.id ?? null,
+    },
   }
 }
 
@@ -616,6 +678,7 @@ export abstract class MessagesQueries {
           content: messages.content,
           sharedPostId: messages.sharedPostId,
           sharedImageId: messages.sharedImageId,
+          replyToMessageId: messages.replyToMessageId,
           createdAt: messages.createdAt,
         })
         .from(messages)
@@ -700,11 +763,27 @@ export abstract class MessagesQueries {
 
   static async markConversationRead(
     userId: number,
-    conversationId: number
+    conversationId: number,
+    messageId?: number
   ): Promise<boolean> {
+    let readAt = new Date()
+    if (messageId !== undefined) {
+      const boundary = await data
+        .select({ createdAt: messages.createdAt })
+        .from(messages)
+        .where(
+          and(
+            eq(messages.id, messageId),
+            eq(messages.conversationId, conversationId)
+          )
+        )
+        .limit(1)
+      if (boundary[0]) readAt = boundary[0].createdAt
+    }
+
     const result = await data
       .update(messageConversationMembers)
-      .set({ lastReadAt: new Date() })
+      .set({ lastReadAt: readAt })
       .where(
         and(
           eq(messageConversationMembers.conversationId, conversationId),
@@ -719,12 +798,18 @@ export abstract class MessagesQueries {
     userId: number,
     conversationId: number,
     limit: number,
-    afterMessageId?: number
+    afterMessageId?: number,
+    beforeMessageId?: number
   ): Promise<BygMessageConversation | null> {
     const conversation = await getConversationForUser(conversationId, userId)
     if (!conversation) return null
 
-    return await buildConversation(conversation, limit, afterMessageId)
+    return await buildConversation(
+      conversation,
+      limit,
+      afterMessageId,
+      beforeMessageId
+    )
   }
 
   static async getConversationByUsername(
@@ -1201,6 +1286,22 @@ export abstract class MessagesQueries {
         memberIds.find(memberId => memberId !== input.senderId) ?? null
     }
 
+    if (input.replyToMessageId !== undefined) {
+      const replyTarget = await data
+        .select({ id: messages.id })
+        .from(messages)
+        .where(
+          and(
+            eq(messages.id, input.replyToMessageId),
+            eq(messages.conversationId, conversation.id)
+          )
+        )
+        .limit(1)
+      if (!replyTarget[0]) {
+        return { ok: false, code: 'invalid_reply' }
+      }
+    }
+
     const insertedRows = await data
       .insert(messages)
       .values({
@@ -1210,6 +1311,7 @@ export abstract class MessagesQueries {
         content: normalizedContent,
         sharedPostId: input.sharedPostId ?? null,
         sharedImageId: input.sharedImageId ?? null,
+        replyToMessageId: input.replyToMessageId ?? null,
         createdAt: new Date(),
       })
       .returning({
@@ -1236,6 +1338,7 @@ export abstract class MessagesQueries {
         content: messages.content,
         sharedPostId: messages.sharedPostId,
         sharedImageId: messages.sharedImageId,
+        replyToMessageId: messages.replyToMessageId,
         createdAt: messages.createdAt,
       })
       .from(messages)

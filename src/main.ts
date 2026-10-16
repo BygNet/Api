@@ -13,9 +13,9 @@ import { CreateController } from '@/create/controller'
 import {
   AskCreateSchema,
   AuthGrantSchema,
-  ChatNotificationPreferenceSchema,
   CommentSchema,
   MessageSendBody,
+  MessageReadSchema,
   CreatePostSchema,
   EnableTwoFactorSchema,
   MessageConversationInfoSchema,
@@ -213,7 +213,6 @@ const writePathPrefixes: string[] = [
   '/auth/grants',
   '/auth/exchange',
   '/auth/sessions',
-  '/notifications/preferences',
   '/notifications/read-all',
   '/messages/conversations/',
 ]
@@ -366,8 +365,6 @@ BygApi.use(html())
         'https://byg.gg', // Byg
         'https://share.byg.gg', // Byg Share
         'https://asks.byg.gg', // Byg Asks
-        'https://chat.byg.gg', // Byg Chat
-        'http://localhost:2259', // Byg Chat dev
         'https://byg.a35.dev', // Legacy Byg
       ],
       credentials: true,
@@ -1514,51 +1511,6 @@ BygApi.use(html())
       },
     }
   )
-  .get(
-    '/notifications/preferences',
-    async ({ userId, set }) => {
-      if (!userId) {
-        set.status = 401
-        return null
-      }
-      return {
-        chatNotificationsEnabled:
-          await NotificationService.chatNotificationsEnabled(
-            userId
-          ),
-      }
-    },
-    {
-      response: { 200: t.Ref('Any'), 401: t.Ref('Empty') },
-      detail: {
-        tags: ['Notifications'],
-        description: 'Get notification preferences',
-      },
-    }
-  )
-  .put(
-    '/notifications/preferences/chat',
-    async ({ body, userId, set }) => {
-      if (!userId) {
-        set.status = 401
-        return null
-      }
-      await NotificationService.setChatNotificationsEnabled(
-        userId,
-        body.enabled
-      )
-      return { chatNotificationsEnabled: body.enabled }
-    },
-    {
-      body: ChatNotificationPreferenceSchema,
-      response: { 200: t.Ref('Any'), 401: t.Ref('Empty') },
-      detail: {
-        tags: ['Notifications'],
-        description:
-          'Set whether chat owns message notifications',
-      },
-    }
-  )
   .post(
     '/notifications/read-all',
     async ({ userId, set }) => {
@@ -1694,10 +1646,10 @@ BygApi.use(html())
         return null
       }
 
-      const rawLimit = Number(query.limit ?? '120')
+      const rawLimit = Number(query.limit ?? '40')
       const limit = Number.isFinite(rawLimit)
         ? rawLimit
-        : 120
+        : 40
       const rawAfter = query.after
         ? Number(query.after)
         : undefined
@@ -1705,12 +1657,21 @@ BygApi.use(html())
         rawAfter !== undefined && Number.isFinite(rawAfter)
           ? Math.trunc(rawAfter)
           : undefined
+      const rawBefore = query.before
+        ? Number(query.before)
+        : undefined
+      const beforeMessageId =
+        rawBefore !== undefined &&
+        Number.isFinite(rawBefore)
+          ? Math.trunc(rawBefore)
+          : undefined
       const conversation =
         await MessagesController.getConversation(
           userId,
           conversationId,
           limit,
-          afterMessageId
+          afterMessageId,
+          beforeMessageId
         )
 
       if (!conversation) {
@@ -1724,6 +1685,7 @@ BygApi.use(html())
       query: t.Object({
         limit: t.Optional(t.String()),
         after: t.Optional(t.String()),
+        before: t.Optional(t.String()),
       }),
       response: {
         200: t.Ref('Any'),
@@ -1740,7 +1702,7 @@ BygApi.use(html())
   )
   .post(
     '/messages/conversations/:conversationId/read',
-    async ({ userId, params, set }) => {
+    async ({ body, userId, params, set }) => {
       if (!userId) {
         set.status = 401
         return null
@@ -1753,6 +1715,7 @@ BygApi.use(html())
       return await MessagesController.markConversationRead(
         userId,
         conversationId,
+        body?.messageId,
         set
       )
     },
@@ -1763,6 +1726,7 @@ BygApi.use(html())
         401: t.Ref('Empty'),
         404: t.Ref('Empty'),
       },
+      body: t.Optional(MessageReadSchema),
       detail: {
         tags: ['Messages'],
         description: 'Mark a conversation as read',

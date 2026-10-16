@@ -135,6 +135,12 @@ export interface BygMessageSharedImage {
   createdDate: string
 }
 
+export interface BygMessageReplyPreview {
+  id: number
+  senderUsername: string
+  content: string
+}
+
 export interface BygMessage {
   id: number
   conversationId: number
@@ -150,6 +156,8 @@ export interface BygMessage {
   createdDate: string
   sharedPost: BygMessageSharedPost | null
   sharedImage: BygMessageSharedImage | null
+  replyToMessageId: number | null
+  replyTo: BygMessageReplyPreview | null
 }
 
 export interface BygMessageConversationMember {
@@ -185,6 +193,11 @@ export interface BygMessageConversation {
   creatorId: number
   members: BygMessageConversationMember[]
   messages: BygMessage[]
+  pagination?: {
+    hasOlder: boolean
+    oldestMessageId: number | null
+    newestMessageId: number | null
+  }
 }
 
 export interface BygMessageShareTarget {

@@ -8,7 +8,7 @@ import {
   text,
   uuid,
   timestamp,
-  boolean,
+  type AnyPgColumn,
 } from 'drizzle-orm/pg-core'
 import { sql } from 'drizzle-orm'
 
@@ -153,18 +153,6 @@ export const asks = pgTable(
   table => [index('asks_recipient_id_idx').on(table.recipientId)]
 )
 
-export const notificationPreferences = pgTable('notification_preferences', {
-  userId: integer('user_id')
-    .primaryKey()
-    .references(() => users.id, { onDelete: 'cascade' }),
-  chatNotificationsEnabled: boolean('chat_notifications_enabled')
-    .notNull()
-    .default(true),
-  updatedAt: timestamp('updated_at', { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-})
-
 export const notifications = pgTable(
   'notifications',
   {
@@ -267,11 +255,22 @@ export const messages = pgTable(
     sharedImageId: integer('shared_image_id').references(() => images.id, {
       onDelete: 'set null',
     }),
+    replyToMessageId: integer('reply_to_message_id').references(
+      (): AnyPgColumn => messages.id,
+      { onDelete: 'set null' }
+    ),
     createdAt: timestamp('created_at', { withTimezone: true })
       .notNull()
       .defaultNow(),
   },
-  table => [index('messages_conversation_id_idx').on(table.conversationId)]
+  table => [
+    index('messages_conversation_id_idx').on(table.conversationId),
+    index('messages_conversation_cursor_idx').on(
+      table.conversationId,
+      table.id
+    ),
+    index('messages_reply_to_message_id_idx').on(table.replyToMessageId),
+  ]
 )
 
 export const shortLinks = pgTable('short_links', {

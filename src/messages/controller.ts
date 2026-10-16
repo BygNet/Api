@@ -35,10 +35,6 @@ function summarizePushBody(message: BygMessage): string {
   return 'Sent you a message'
 }
 
-function chatUrl(): string {
-  return (process.env.BYG_CHAT_URL ?? 'https://chat.byg.gg').replace(/\/$/, '')
-}
-
 export abstract class MessagesController {
   static async getThreads(
     userId: number,
@@ -51,24 +47,28 @@ export abstract class MessagesController {
     userId: number,
     conversationId: number,
     limit: number,
-    afterMessageId?: number
+    afterMessageId?: number,
+    beforeMessageId?: number
   ): Promise<BygMessageConversation | null> {
     return await MessagesQueries.getConversationById(
       userId,
       conversationId,
       limit,
-      afterMessageId
+      afterMessageId,
+      beforeMessageId
     )
   }
 
   static async markConversationRead(
     userId: number,
     conversationId: number,
+    messageId: number | undefined,
     set: any
   ): Promise<{ status: string } | null> {
     const didUpdate = await MessagesQueries.markConversationRead(
       userId,
-      conversationId
+      conversationId,
+      messageId
     )
     if (!didUpdate) {
       set.status = 404
@@ -186,6 +186,7 @@ export abstract class MessagesController {
       content: body.content,
       sharedPostId: body.sharedPostId,
       sharedImageId: body.sharedImageId,
+      replyToMessageId: body.replyToMessageId,
     })
 
     if (!result.ok) {
@@ -194,6 +195,7 @@ export abstract class MessagesController {
         case 'empty_message':
         case 'invalid_share_payload':
         case 'invalid_conversation_target':
+        case 'invalid_reply':
           set.status = 400
           return null
 
@@ -221,13 +223,11 @@ export abstract class MessagesController {
     for (const memberId of result.memberIds) {
       if (memberId === userId) continue
 
-      const chatNotificationsEnabled =
-        await NotificationService.chatNotificationsEnabled(memberId)
       const pushPayload = {
         type: 'message' as const,
         title: `New message from ${message.senderUsername}`,
         body: summarizePushBody(message),
-        path: `${chatUrl()}/?conversation=${message.conversationId}`,
+        path: `/messages?conversation=${message.conversationId}`,
         tag: `message-${message.id}`,
       }
 
@@ -241,11 +241,7 @@ export abstract class MessagesController {
         dedupeKey: `message-${message.id}-${memberId}`,
       })
 
-      await PushService.sendToUser(
-        memberId,
-        pushPayload,
-        chatNotificationsEnabled ? 'chat' : 'web'
-      )
+      await PushService.sendToUser(memberId, pushPayload)
     }
 
     return message

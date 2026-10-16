@@ -6,12 +6,9 @@ import { sessions } from '@/data/tables'
 import type { BygNotificationType } from '@/types'
 import { logger } from '@/observability/logger'
 
-export type PushSource = 'web' | 'chat'
-
 export interface PushSubscriptionData {
   endpoint: string
   expirationTime: number | null
-  source?: PushSource
   keys: {
     p256dh: string
     auth: string
@@ -60,10 +57,7 @@ export abstract class PushService {
 
     const userSubscriptions =
       subscriptionStore.get(userId) ?? new Map<string, PushSubscriptionData>()
-    userSubscriptions.set(subscription.endpoint, {
-      ...subscription,
-      source: subscription.source ?? 'web',
-    })
+    userSubscriptions.set(subscription.endpoint, { ...subscription })
     subscriptionStore.set(userId, userSubscriptions)
   }
 
@@ -79,8 +73,7 @@ export abstract class PushService {
 
   static async sendToUser(
     userId: number,
-    payload: PushAlertPayload,
-    source: PushSource = 'web'
+    payload: PushAlertPayload
   ): Promise<void> {
     const activeSessions = await data
       .select({
@@ -106,39 +99,37 @@ export abstract class PushService {
     }
 
     await Promise.all(
-      Array.from(userSubscriptions.values())
-        .filter(subscription => (subscription.source ?? 'web') === source)
-        .map(async subscription => {
-          try {
-            await webpush.sendNotification(
-              subscription,
-              JSON.stringify({
-                ...payload,
-                createdDate: new Date().toISOString(),
-              })
-            )
-          } catch (error: unknown) {
-            const statusCode = Number(
-              (error as { statusCode?: number }).statusCode ?? 0
-            )
+      Array.from(userSubscriptions.values()).map(async subscription => {
+        try {
+          await webpush.sendNotification(
+            subscription,
+            JSON.stringify({
+              ...payload,
+              createdDate: new Date().toISOString(),
+            })
+          )
+        } catch (error: unknown) {
+          const statusCode = Number(
+            (error as { statusCode?: number }).statusCode ?? 0
+          )
 
-            if (statusCode === 404 || statusCode === 410) {
-              userSubscriptions.delete(subscription.endpoint)
-              logger.warn('push.subscription_expired', {
-                userId,
-                statusCode,
-                notificationType: payload.type,
-              })
-              return
-            }
-
-            logger.error('push.send_failed', error, {
+          if (statusCode === 404 || statusCode === 410) {
+            userSubscriptions.delete(subscription.endpoint)
+            logger.warn('push.subscription_expired', {
               userId,
               statusCode,
               notificationType: payload.type,
             })
+            return
           }
-        })
+
+          logger.error('push.send_failed', error, {
+            userId,
+            statusCode,
+            notificationType: payload.type,
+          })
+        }
+      })
     )
 
     if (userSubscriptions.size < 1) {

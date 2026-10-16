@@ -1,7 +1,7 @@
 import { and, eq } from 'drizzle-orm'
 
 import { data } from '@/data/client'
-import { notificationPreferences, notifications } from '@/data/tables'
+import { notifications } from '@/data/tables'
 import { MessagesRealtimeService } from '@/messages/realtime'
 
 export type NotificationType =
@@ -24,42 +24,8 @@ export interface CreateNotificationInput {
 }
 
 export abstract class NotificationService {
-  static async chatNotificationsEnabled(userId: number): Promise<boolean> {
-    const preference = await data.query.notificationPreferences.findFirst({
-      where: eq(notificationPreferences.userId, userId),
-    })
-    return preference?.chatNotificationsEnabled ?? true
-  }
-
-  static async setChatNotificationsEnabled(
-    userId: number,
-    enabled: boolean
-  ): Promise<void> {
-    await data
-      .insert(notificationPreferences)
-      .values({
-        userId,
-        chatNotificationsEnabled: enabled,
-        updatedAt: new Date(),
-      })
-      .onConflictDoUpdate({
-        target: notificationPreferences.userId,
-        set: {
-          chatNotificationsEnabled: enabled,
-          updatedAt: new Date(),
-        },
-      })
-  }
-
   static async create(input: CreateNotificationInput): Promise<void> {
     if (input.actorId !== null && input.actorId === input.recipientId) return
-
-    if (
-      input.type === 'message' &&
-      (await this.chatNotificationsEnabled(input.recipientId))
-    ) {
-      return
-    }
 
     const inserted = await data
       .insert(notifications)

@@ -21,7 +21,6 @@ export type CommentBody = typeof CommentSchema.static
 export const PushSubscriptionSchema = t.Object({
   endpoint: t.String(),
   expirationTime: t.Union([t.Number(), t.Null()]),
-  source: t.Optional(t.Union([t.Literal('web'), t.Literal('chat')])),
   keys: t.Object({
     p256dh: t.String(),
     auth: t.String(),
@@ -40,8 +39,13 @@ export const MessageSendSchema = t.Object({
   content: t.Optional(t.String()),
   sharedPostId: t.Optional(t.Number()),
   sharedImageId: t.Optional(t.Number()),
+  replyToMessageId: t.Optional(t.Number()),
 })
 export type MessageSendBody = typeof MessageSendSchema.static
+
+export const MessageReadSchema = t.Object({
+  messageId: t.Optional(t.Number()),
+})
 
 export const MessageDirectConversationSchema = t.Object({
   recipientId: t.Number(),
@@ -95,12 +99,6 @@ export const AuthGrantSchema = t.Object({
   redirectUri: t.String({ minLength: 1, maxLength: 512 }),
 })
 export type AuthGrantBody = typeof AuthGrantSchema.static
-
-export const ChatNotificationPreferenceSchema = t.Object({
-  enabled: t.Boolean(),
-})
-export type ChatNotificationPreferenceBody =
-  typeof ChatNotificationPreferenceSchema.static
 
 export const SessionExpirySchema = t.Object({
   neverExpire: t.Boolean(),

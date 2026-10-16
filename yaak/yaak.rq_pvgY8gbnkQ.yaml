@@ -2,7 +2,7 @@ type: http_request
 model: http_request
 id: rq_pvgY8gbnkQ
 createdAt: 2026-01-19T08:49:39.984401
-updatedAt: 2026-09-14T07:45:12.301825
+updatedAt: 2026-10-16T16:47:10.277449
 workspaceId: wk_4d6NvbCu5c
 folderId: fl_FeNuxvXCB6
 authentication: {}
@@ -12,9 +12,9 @@ body:
   - enabled: true
     id: Ts3bZc4Rpm
     name: password
-    value: dk-2011
+    value: ''
   - enabled: true
-    id: iZzSDqXnjY
+    id: IvsT3vruTq
     name: ''
     value: ''
 bodyType: multipart/form-data
@@ -44,3 +44,6 @@ settingFollowRedirects:
 settingRequestTimeout:
   enabled: false
   value: 0
+settingHttpVersion:
+  enabled: false
+  value: auto
