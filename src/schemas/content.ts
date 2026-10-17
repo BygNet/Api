@@ -1,0 +1,42 @@
+import { t } from 'elysia'
+
+export const CreatePostSchema = t.Object({
+  title: t.String(),
+  content: t.String(),
+})
+export type CreatePostBody = typeof CreatePostSchema.static
+
+export const UploadImageSchema = t.Object({
+  title: t.String(),
+  imageUrl: t.String(),
+})
+export type UploadImageBody = typeof UploadImageSchema.static
+
+export const CommentSchema = t.Object({
+  id: t.Number(),
+  content: t.String(),
+})
+export type CommentBody = typeof CommentSchema.static
+
+export const AskSchema = t.Object({
+  id: t.Number(),
+  content: t.String(),
+  createdDate: t.String(),
+})
+
+export const AskArraySchema = t.Array(AskSchema)
+
+export const CommentArraySchema = t.Array(
+  t.Object({
+    id: t.Number(),
+    author: t.String(),
+    content: t.String(),
+    createdDate: t.String(),
+  })
+)
+
+export const AskCreateSchema = t.Object({
+  content: t.String(),
+  variantId: t.Optional(t.String()),
+})
+export type AskCreateBody = typeof AskCreateSchema.static
