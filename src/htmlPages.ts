@@ -1,20 +1,18 @@
 const styles: string = `
 <style>
-  @import url("https://fonts.googleapis.com/css2?family=Unbounded:wght@200..900&display=swap");
-  
   body {
     ;margin: 0
     ;padding: 1rem
-    ;background: black
-    ;color: #fae6f7
+    ;background: #170023
+    ;color: #DCDBDE
   }
   
   * {
-    ;font-family: "Unbounded", sans-serif
+    ;font-family: "Wix Madefor Text", sans-serif
   }
   
   a {
-    ;color: #ff00dd
+    ;color: #D11595
   }
 </style>
 `
@@ -23,17 +21,22 @@ export const HomePage: string = `
 <html lang="en">
   <head>
     <title>Byg API Home</title>
-    <link rel="icon" href="https://byg.a35.dev/favicon.ico" />
+    <link rel="icon" href="https://byg.gg/favicon.ico" />
     
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Wix+Madefor+Text:ital,wght@0,400..800;1,400..800&display=swap" rel="stylesheet">
+    
     ${styles}
   </head>
   <body>
     <h1>Byg API home.</h1>
     
     <ul>
-      <li><a href="https://byg.a35.dev">Byg App for Web.</a></li>
+      <li><a href="https://byg.gg">Byg App for Web.</a></li>
       <li><a href="/swagger">Byg API Swagger.</a></li>
     </ul>
   </body>
