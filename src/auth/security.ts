@@ -146,6 +146,16 @@ export function verifyTotpCode(secret: string, code: string): boolean {
   return false
 }
 
+function escapeHtml(value: string): string {
+  return value.replace(/[&<>"']/g, (char) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;',
+  })[char]!);
+}
+
 export async function sendEmailVerificationEmail(input: {
   email: string
   username: string
@@ -173,13 +183,58 @@ export async function sendEmailVerificationEmail(input: {
       subject: 'Verify your Byg email',
       text: `Hi ${input.username}, your Byg email verification code is ${input.code}.`,
       html: `
-        <div style="font-family: Arial, sans-serif; line-height: 1.5;">
-          <h2>Verify your Byg email</h2>
-          <p>Hi ${input.username},</p>
-          <p>Your verification code is:</p>
-          <p style="font-size: 28px; font-weight: 700; letter-spacing: 0.35em;">${input.code}</p>
-          <p>Enter this code in Byg to verify your email address.</p>
-        </div>
+<div style="margin:0;padding:40px 16px;background-color:#382f3e;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;color:#f6eeff;">
+  <div style="max-width:440px;margin:0 auto;">
+
+    <!-- Byg wordmark -->
+    <div style="margin-bottom:18px;padding:0 20px;">
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td style="vertical-align:middle;padding-right:12px;">
+            <img
+              src="https://byg.gg/logos/BygLogo.png"
+              alt="Byg"
+              width="48"
+              height="48"
+              style="display:block;border:0;"
+            >
+          </td>
+          <td style="vertical-align:middle;">
+            <h1 style="margin:0;font-size:28px;line-height:1.2;">
+              Byg
+            </h1>
+          </td>
+        </tr>
+      </table>
+    </div>
+
+    <!-- Email card -->
+    <div style="padding:36px 28px;background-color:#493f50;box-shadow: inset 0 5px 6px #574a65;border-radius: 24px;">
+      <h1 style="margin:0 0 12px;font-size:24px;line-height:1.3;font-weight:750;letter-spacing:-0.2px;color:#f6eeff;">
+        Verify your email
+      </h1>
+
+      <p style="margin:0 0 28px;font-size:15px;line-height:1.7;color:#dec6fb;">
+        Hi ${input.username},<br>
+        Enter the verification code below to confirm your email address and finish setting up your Byg account.
+      </p>
+
+      <!-- Verification code -->
+      <div style="margin:0 0 24px;padding:18px;background-color:#52455a;box-shadow: inset 0 5px 6px #6f627e;border-radius:18px;">
+        <p style="margin:0 0 6px;font-size:12px;font-weight:700;color:#dec6fb;">
+          Your code:
+        </p>
+        <p style="margin:0;font-family:'SFMono-Regular',Consolas,'Liberation Mono',monospace;font-size:30px;font-weight:700;letter-spacing:0.14em;color:#e5b4ff;">
+          ${escapeHtml(input.code)}
+        </p>
+      </div>
+
+      <p style="margin:0;font-size:13px;line-height:1.7;color:#dec6fb;">
+        If you didn't request this code, please contact Byg support at <a href="mailto:hi@byg.gg" style="color:#f6eeff;text-decoration-color: #f833ff">hi@byg.gg</a>.
+      </p>
+    </div>
+  </div>
+</div>
       `,
     }),
   })
