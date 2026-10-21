@@ -1,9 +1,13 @@
 import { t } from 'elysia'
 
 import { AuthController } from '@/auth/controller'
+import { OAuthService } from '@/auth/oauth/service'
 import {
   AuthGrantSchema,
   EnableTwoFactorSchema,
+  OAuthExchangeSchema,
+  OAuthStartQuerySchema,
+  OAuthTokenSchema,
   SessionExpirySchema,
   VerifyEmailSchema,
 } from '@/schemas'
@@ -11,6 +15,152 @@ import { requireUser, type RouteApp } from '../helpers'
 
 export function registerAuthRoutes(app: RouteApp): RouteApp {
   return app
+    .get('/auth/oauth/providers', () => OAuthService.providers(), {
+      response: {
+        200: t.Array(t.Ref('OAuthProvider')),
+      },
+      detail: {
+        tags: ['Auth'],
+        description: 'List configured OAuth sign-in providers',
+      },
+    })
+    .get(
+      '/auth/oauth/:provider/start',
+      async ({ params, query, userId, set }) => {
+        if (query.action === 'link' && !userId) {
+          set.status = 401
+          return null
+        }
+        const result = await OAuthService.start({
+          providerId: params.provider,
+          action: query.action ?? 'signin',
+          nonce: query.nonce,
+          userId,
+        })
+        if (!result) set.status = 400
+        return result
+      },
+      {
+        query: OAuthStartQuerySchema,
+        response: {
+          200: t.Object({ authorizationUrl: t.String() }),
+          400: t.Ref('Empty'),
+          401: t.Ref('Empty'),
+        },
+        detail: {
+          tags: ['Auth'],
+          description: 'Create a provider authorization URL',
+        },
+      }
+    )
+    .get(
+      '/auth/oauth/:provider/callback',
+      ({ params, query }) =>
+        OAuthService.callback({
+          providerId: params.provider,
+          code: query.code,
+          state: query.state,
+          error: query.error,
+        }),
+      {
+        detail: {
+          tags: ['Auth'],
+          description: 'Handle the OAuth provider callback',
+        },
+      }
+    )
+    .post(
+      '/auth/oauth/:provider/exchange',
+      async ({ params, body, request, set, userId }) => {
+        return await OAuthService.exchange({
+          code: body.code,
+          providerId: params.provider,
+          action: body.action,
+          userId,
+          twoFactorCode: body.twoFactorCode,
+          request,
+          set,
+        })
+      },
+      {
+        body: OAuthExchangeSchema,
+        response: {
+          200: t.Ref('Any'),
+          400: t.Ref('Empty'),
+          401: t.Ref('Empty'),
+          403: t.Ref('TwoFactorChallenge'),
+          409: t.Ref('Any'),
+          422: t.Ref('Any'),
+        },
+        detail: {
+          tags: ['Auth'],
+          description: 'Exchange a one-time OAuth grant',
+        },
+      }
+    )
+    .post(
+      '/auth/oauth/:provider/token',
+      async ({ params, body, request, set }) => {
+        return await OAuthService.exchangeAccessToken({
+          providerId: params.provider,
+          accessToken: body.accessToken,
+          twoFactorCode: body.twoFactorCode,
+          request,
+          set,
+        })
+      },
+      {
+        body: OAuthTokenSchema,
+        response: {
+          200: t.Ref('AuthSuccess'),
+          400: t.Ref('Empty'),
+          401: t.Ref('Empty'),
+          403: t.Ref('TwoFactorChallenge'),
+          409: t.Ref('Any'),
+          422: t.Ref('Any'),
+        },
+        detail: {
+          tags: ['Auth'],
+          description: 'Exchange a provider instant-authorization token',
+        },
+      }
+    )
+    .get(
+      '/auth/oauth/accounts',
+      async ({ userId, set }) => {
+        if (!requireUser(userId, set)) return null
+        return await OAuthService.accounts(userId)
+      },
+      {
+        response: {
+          200: t.Array(t.Ref('OAuthAccount')),
+          401: t.Ref('Empty'),
+        },
+        detail: {
+          tags: ['Auth'],
+          description: 'List OAuth accounts linked to the current user',
+        },
+      }
+    )
+    .delete(
+      '/auth/oauth/:provider',
+      async ({ params, userId, set }) => {
+        if (!requireUser(userId, set)) return null
+        return await OAuthService.unlink(userId, params.provider, set)
+      },
+      {
+        response: {
+          200: t.Ref('Status'),
+          401: t.Ref('Empty'),
+          404: t.Ref('Empty'),
+          409: t.Ref('Empty'),
+        },
+        detail: {
+          tags: ['Auth'],
+          description: 'Unlink an OAuth account',
+        },
+      }
+    )
     .post(
       '/auth/signup',
       async ({ body, set, request }) => {

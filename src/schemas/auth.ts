@@ -50,3 +50,19 @@ export const EnableTwoFactorSchema = t.Object({
   code: t.String(),
 })
 export type EnableTwoFactorBody = typeof EnableTwoFactorSchema.static
+
+export const OAuthStartQuerySchema = t.Object({
+  action: t.Optional(t.Union([t.Literal('signin'), t.Literal('link')])),
+  nonce: t.String({ minLength: 16, maxLength: 128 }),
+})
+
+export const OAuthExchangeSchema = t.Object({
+  code: t.String({ minLength: 1 }),
+  action: t.Union([t.Literal('signin'), t.Literal('link')]),
+  twoFactorCode: t.Optional(t.String()),
+})
+
+export const OAuthTokenSchema = t.Object({
+  accessToken: t.String({ minLength: 1, maxLength: 4096 }),
+  twoFactorCode: t.Optional(t.String()),
+})

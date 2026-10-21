@@ -40,6 +40,7 @@ const writePathPrefixes: string[] = [
   '/auth/resend-email-verification',
   '/auth/2fa/enable',
   '/auth/2fa/disable',
+  '/auth/oauth/',
   '/auth/grants',
   '/auth/exchange',
   '/auth/sessions',

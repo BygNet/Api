@@ -147,13 +147,17 @@ export function verifyTotpCode(secret: string, code: string): boolean {
 }
 
 function escapeHtml(value: string): string {
-  return value.replace(/[&<>"']/g, (char) => ({
-    '&': '&amp;',
-    '<': '&lt;',
-    '>': '&gt;',
-    '"': '&quot;',
-    "'": '&#39;',
-  })[char]!);
+  return value.replace(
+    /[&<>"']/g,
+    char =>
+      ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;',
+      })[char]!
+  )
 }
 
 export async function sendEmailVerificationEmail(input: {

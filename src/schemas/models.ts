@@ -18,6 +18,19 @@ import {
   UserSchema,
 } from './auth'
 
+export const OAuthProviderSchema = t.Object({
+  id: t.String(),
+  label: t.String(),
+  icon: t.String(),
+  clientId: t.Union([t.String(), t.Null()]),
+})
+
+export const OAuthAccountSchema = t.Object({
+  provider: t.String(),
+  username: t.Union([t.String(), t.Null()]),
+  createdAt: t.String(),
+})
+
 export const SongLinkInfoSchema = t.Object({
   requestedUrl: t.String(),
   finalUrl: t.String(),
@@ -53,4 +66,6 @@ export const apiModels = {
   AnyArray: AnyArraySchema,
   CommentArray: CommentArraySchema,
   Html: HtmlSchema,
+  OAuthProvider: OAuthProviderSchema,
+  OAuthAccount: OAuthAccountSchema,
 }

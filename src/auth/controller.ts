@@ -239,6 +239,21 @@ function publicUser(user: {
 }
 
 export class AuthController {
+  static async createSessionForUser(
+    userId: number,
+    request: Request
+  ): Promise<{ token: string; user: PublicUser } | null> {
+    const user = await data.query.users.findFirst({
+      where: eq(users.id, userId),
+    })
+    if (!user) return null
+
+    return {
+      token: await issueSession(user.id, request),
+      user: publicUser(user),
+    }
+  }
+
   static async signup(
     body: SignupBody,
     set: any,

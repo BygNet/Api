@@ -6,6 +6,7 @@ import {
   uniqueIndex,
   serial,
   text,
+  boolean,
   uuid,
   timestamp,
   type AnyPgColumn,
@@ -17,6 +18,7 @@ export const users = pgTable('users', {
   email: text('email').notNull().unique(),
   username: text('username').notNull().unique(),
   passHash: text('pass_hash').notNull(),
+  passwordSet: boolean('password_set').notNull().default(true),
   emailVerificationCode: text('email_verification_code'),
   twoFactorSecret: text('2fa_secret'),
   createdAt: timestamp('created_at', { withTimezone: true })
@@ -33,6 +35,52 @@ export const users = pgTable('users', {
   verification: text('verification', {
     enum: ['notable', 'organization', 'government', 'identity'],
   }),
+})
+
+export const oauthAccounts = pgTable(
+  'oauth_accounts',
+  {
+    id: serial('id').primaryKey(),
+    userId: integer('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    provider: text('provider').notNull(),
+    providerAccountId: text('provider_account_id').notNull(),
+    providerUsername: text('provider_username'),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  table => [
+    uniqueIndex('oauth_accounts_provider_account_unique').on(
+      table.provider,
+      table.providerAccountId
+    ),
+    uniqueIndex('oauth_accounts_user_provider_unique').on(
+      table.userId,
+      table.provider
+    ),
+    index('oauth_accounts_user_id_idx').on(table.userId),
+  ]
+)
+
+export const oauthGrants = pgTable('oauth_grants', {
+  code: uuid('code').primaryKey(),
+  provider: text('provider').notNull(),
+  action: text('action').notNull(),
+  userId: integer('user_id').references(() => users.id, {
+    onDelete: 'cascade',
+  }),
+  providerAccountId: text('provider_account_id').notNull(),
+  providerUsername: text('provider_username'),
+  email: text('email'),
+  displayName: text('display_name'),
+  avatarUrl: text('avatar_url'),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  usedAt: timestamp('used_at', { withTimezone: true }),
 })
 
 export const sessions = pgTable('sessions', {

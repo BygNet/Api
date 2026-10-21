@@ -33,6 +33,22 @@ DATABASE_URL="postgres://byg:byg@localhost:5432/byg"
 DATABASE_SSL="disable"
 ```
 
+To enable Yandex sign-in, register the API callback URL in the Yandex OAuth
+application and configure the server-side credentials:
+
+```env
+YANDEX_OAUTH_CLIENT_ID="..."
+YANDEX_OAUTH_CLIENT_SECRET="..."
+API_PUBLIC_BASE_URL="https://api.byg.a35.dev"
+```
+
+The server-side callback URL is
+`https://api.byg.a35.dev/auth/oauth/yandex/callback` unless
+`YANDEX_OAUTH_REDIRECT_URI` is set explicitly. For the homepage's personalized
+one-tap button, also register the web token-page URL
+`https://byg.gg/oauth/yandex-token` in the Yandex application. The app requests
+the Yandex ID permissions `login:info` and `login:email`.
+
 Apply schema:
 
 ```shell
