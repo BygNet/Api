@@ -52,7 +52,7 @@ async function fetchProfile(accessToken: string): Promise<OAuthProfile> {
 export const yandexProvider: OAuthProvider = {
   id: 'yandex',
   label: 'Yandex',
-  icon: 'solar:login-2-line-duotone',
+  icon: 'thesvg-color:yandex',
   get clientId() {
     return credentials()?.clientId ?? null
   },
