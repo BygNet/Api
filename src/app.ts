@@ -183,6 +183,7 @@ export function createApp() {
           'https://share.byg.gg',
           'https://asks.byg.gg',
           'https://byg.a35.dev',
+          'https://ca572790.bygweb.pages.dev/',
         ],
         credentials: true,
       })
